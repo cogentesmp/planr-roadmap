@@ -547,7 +547,7 @@
       '<div class="label">'+
         '<input type="checkbox" class="inc" data-id="'+a.id+'"'+(off?'':' checked')+' title="Include in plan" />'+
         '<span class="id">'+a.id+'</span>'+
-        '<span class="ttl" title="'+esc(a.title)+(blocked?' — blocked by dependency':'')+'">'+esc(a.title)+'</span>'+
+        '<span class="ttl" title="'+esc(a.title)+'">'+esc(a.title)+'</span>'+
         '<span class="status-pill '+sc+'">'+esc(a.status)+'</span></div>'+
       '<div class="track">'+bar+'</div></div>';
   }
@@ -895,26 +895,34 @@
     var res=await fetch("planr-activities.enc",{cache:"no-store"});
     if(!res.ok) throw new Error("no-data");
     var pkg=await res.json();
-    var gate=buildGate(), err="";
+    var gate=buildGate(), err="", data=null;
     var cached=null; try{ cached=sessionStorage.getItem("planr-pass"); }catch(e){}
+    // Phase 1: unlock. Only a failed DECRYPTION re-prompts for the password.
     for(;;){
       var pass = cached!=null ? cached : await askPassword(gate, err);
       cached=null;
       try{
-        var data=await decryptPayload(pkg, pass);
+        data=await decryptPayload(pkg, pass);
         try{ sessionStorage.setItem("planr-pass", pass); }catch(e){}
-        importData(data); save(); syncControls(); render();
-        var note=document.getElementById("sourceNote");
-        if(note) note.setAttribute("data-source","board");
-        if(data.generatedAt){
-          var when=new Date(data.generatedAt);
-          var el=document.getElementById("lastSynced");
-          if(el){ el.textContent=when.getDate()+" "+MON[when.getMonth()]+" "+when.getHours().toString().padStart(2,"0")+":"+when.getMinutes().toString().padStart(2,"0");
-            el.title="Synced from the GitHub board "+when.toLocaleString(); }
-        }
-        gate.remove(); return;
+        break;
       }catch(e){ try{ sessionStorage.removeItem("planr-pass"); }catch(_){}
         err="Incorrect password — try again."; }
+    }
+    // Phase 2: render. Errors here are real bugs, NOT wrong passwords — surface them.
+    try{
+      importData(data); save(); syncControls(); render();
+      var note=document.getElementById("sourceNote");
+      if(note) note.setAttribute("data-source","board");
+      if(data.generatedAt){
+        var when=new Date(data.generatedAt);
+        var el=document.getElementById("lastSynced");
+        if(el){ el.textContent=when.getDate()+" "+MON[when.getMonth()]+" "+when.getHours().toString().padStart(2,"0")+":"+when.getMinutes().toString().padStart(2,"0");
+          el.title="Synced from the GitHub board "+when.toLocaleString(); }
+      }
+      gate.remove();
+    }catch(e){
+      console.error("Render failed after decryption:", e);
+      gate.querySelector("#planrGateErr").textContent="Loaded, but failed to display: "+((e&&e.message)||e);
     }
   }
 
