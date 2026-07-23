@@ -248,14 +248,11 @@
       <h1>PLANR&nbsp;Task Tracker</h1>
       <span class="reg">Jul–Dec 2026</span>
     </div>
-    <span class="sub">Track delivery, dates and dependencies · click a task to update it</span>
+    <span class="sub">Track delivery, dates and dependencies · click a task for details · synced from the GitHub board</span>
     <span class="spacer"></span>
     <div class="controls">
       <span class="ctl">Today <span class="val" id="todayVal"></span></span>
       <span class="ctl">Synced <span class="val" id="lastSynced">—</span></span>
-      <button class="btn" id="exportBtn">Export</button>
-      <button class="btn" id="importBtn">Import</button>
-      <button class="btn" id="resetBtn">Reset</button>
     </div>
   </div>
 
@@ -292,21 +289,6 @@
   </div>
 </div>
 
-<div class="modal" id="exportDialog" role="dialog" aria-modal="true" hidden>
-  <div class="mhead">Export current plan</div>
-  <div class="mbody"><p>The text below is the current browser plan. Download it or copy it manually.</p><textarea id="exportText" readonly></textarea></div>
-  <div class="mactions"><button class="btn" id="exportClose">Close</button><button class="btn" id="downloadBtn">Download JSON</button></div>
-</div>
-<div class="modal" id="importDialog" role="dialog" aria-modal="true" hidden>
-  <div class="mhead">Import plan</div>
-  <div class="mbody"><input type="file" id="importFile" accept="application/json,.json"><textarea id="importText" placeholder="Choose a JSON file above or paste JSON here"></textarea><div class="msg" id="importMsg"></div></div>
-  <div class="mactions"><button class="btn" id="importClose">Cancel</button><button class="btn" id="importApply">Apply import</button></div>
-</div>
-<div class="modal" id="resetDialog" role="dialog" aria-modal="true" hidden>
-  <div class="mhead">Reset browser changes?</div>
-  <div class="mbody">This discards all saved browser edits and restores the authoritative task data embedded in this HTML.</div>
-  <div class="mactions"><button class="btn" id="resetClose">Cancel</button><button class="btn" id="resetConfirm">Reset to authoritative data</button></div>
-</div>
 <aside class="drawer" id="drawer" aria-hidden="true">
   <button class="dclose" id="dclose" aria-label="Close">×</button>
   <div class="dhead">
@@ -804,55 +786,7 @@
   });
 
   // ---------- controls ----------
-  function openModal(el){ el.hidden=false; }
-  function closeModal(el){ el.hidden=true; }
 
-  var resetDialog=document.getElementById("resetDialog");
-  window.planrOpenReset=function(){ openModal(resetDialog); };
-  window.planrCloseReset=function(){ closeModal(resetDialog); };
-  window.planrConfirmReset=function(){
-    try{ localStorage.removeItem(STORE); }catch(e){}
-    state=defaults(); syncControls(); render(); closeDrawer(); closeModal(resetDialog);
-  };
-
-  var exportDialog=document.getElementById("exportDialog"), exportText=document.getElementById("exportText");
-  window.planrOpenExport=function(){
-    exportText.value=JSON.stringify(exportData(),null,2); openModal(exportDialog);
-  };
-  window.planrCloseExport=function(){ closeModal(exportDialog); };
-  window.planrDownload=function(){
-    var blob=new Blob([exportText.value],{type:"application/json"});
-    var url=URL.createObjectURL(blob), a=document.createElement("a");
-    a.href=url; a.download="planr-activities.json"; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function(){URL.revokeObjectURL(url);},1000);
-  };
-
-  var importDialog=document.getElementById("importDialog"), importFile=document.getElementById("importFile");
-  var importText=document.getElementById("importText"), importMsg=document.getElementById("importMsg");
-  window.planrOpenImport=function(){ importMsg.textContent=""; openModal(importDialog); };
-  window.planrCloseImport=function(){ closeModal(importDialog); };
-  window.planrReadImport=function(input){
-    var f=input.files[0]; if(!f)return; var r=new FileReader();
-    r.onload=function(){ importText.value=r.result; importMsg.textContent=""; };
-    r.onerror=function(){ importMsg.textContent="The selected file could not be read."; };
-    r.readAsText(f);
-  };
-  window.planrApplyImport=function(){
-    try{
-      importData(JSON.parse(importText.value)); save(); syncControls(); render(); closeDrawer();
-      closeModal(importDialog); importFile.value=""; importText.value="";
-    }catch(e){ importMsg.textContent="Invalid PLANR JSON: expected a top-level activities array."; }
-  };
-  document.getElementById("exportBtn").addEventListener("click",window.planrOpenExport);
-  document.getElementById("importBtn").addEventListener("click",window.planrOpenImport);
-  document.getElementById("resetBtn").addEventListener("click",window.planrOpenReset);
-  document.getElementById("exportClose").addEventListener("click",window.planrCloseExport);
-  document.getElementById("downloadBtn").addEventListener("click",window.planrDownload);
-  document.getElementById("importClose").addEventListener("click",window.planrCloseImport);
-  document.getElementById("importApply").addEventListener("click",window.planrApplyImport);
-  document.getElementById("importFile").addEventListener("change",function(){window.planrReadImport(this);});
-  document.getElementById("resetClose").addEventListener("click",window.planrCloseReset);
-  document.getElementById("resetConfirm").addEventListener("click",window.planrConfirmReset);
   function syncControls(){ document.getElementById("todayVal").textContent=TODAY.getDate()+" "+MON[TODAY.getMonth()]+" "+TODAY.getFullYear(); document.getElementById("maintPctNote").textContent=MAINT_PCT+"%"; }
 
   // ---------- encrypted-data gate ----------
