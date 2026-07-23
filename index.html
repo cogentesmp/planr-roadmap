@@ -252,6 +252,7 @@
     <span class="spacer"></span>
     <div class="controls">
       <span class="ctl">Today <span class="val" id="todayVal"></span></span>
+      <span class="ctl">Synced <span class="val" id="lastSynced">—</span></span>
       <button class="btn" id="exportBtn">Export</button>
       <button class="btn" id="importBtn">Import</button>
       <button class="btn" id="resetBtn">Reset</button>
@@ -904,8 +905,13 @@
         try{ sessionStorage.setItem("planr-pass", pass); }catch(e){}
         importData(data); save(); syncControls(); render();
         var note=document.getElementById("sourceNote");
-        if(note){ note.setAttribute("data-source","board");
-          if(data.generatedAt) note.setAttribute("title","Synced from GitHub board "+new Date(data.generatedAt).toLocaleString()); }
+        if(note) note.setAttribute("data-source","board");
+        if(data.generatedAt){
+          var when=new Date(data.generatedAt);
+          var el=document.getElementById("lastSynced");
+          if(el){ el.textContent=when.getDate()+" "+MON[when.getMonth()]+" "+when.getHours().toString().padStart(2,"0")+":"+when.getMinutes().toString().padStart(2,"0");
+            el.title="Synced from the GitHub board "+when.toLocaleString(); }
+        }
         gate.remove(); return;
       }catch(e){ try{ sessionStorage.removeItem("planr-pass"); }catch(_){}
         err="Incorrect password — try again."; }

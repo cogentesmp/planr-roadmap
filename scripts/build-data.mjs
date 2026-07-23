@@ -96,7 +96,7 @@ for (const it of items) {
   for (const fv of (c.issueFieldValues?.nodes || [])) {
     if (fv && fv.field && fv.field.name && fv.value) dates[fv.field.name] = fv.value.slice(0, 10);
   }
-  const startDate = dates["Start date"] || pb.startDate || null;
+  const startDate = dates["Start date"] || null;   // native Start date is the single source of truth
   const endDate = dates["Target date"] || null;
   activities.push({
     id,
@@ -119,6 +119,20 @@ for (const it of items) {
   });
 }
 activities.sort((a,b) => a.id.localeCompare(b.id, undefined, { numeric:true }));
+
+// ---- build-time validation ----
+if (!activities.length) {
+  console.error("ERROR: no roadmap tasks parsed (0 issues matched 'TX.X — …'). Aborting so we don't publish empty data.");
+  process.exit(1);
+}
+const missingDates = activities.filter(a => (a.status === "scheduled" || a.status === "completed") && !a.startDate);
+if (missingDates.length) {
+  console.warn(`⚠ ${missingDates.length} placed task(s) missing a Start date — they won't appear on the timeline: ${missingDates.map(a => a.id).join(", ")}`);
+}
+const badDeps = activities.filter(a => (a.dependsOn || []).some(d => !activities.find(x => x.id === d)));
+if (badDeps.length) {
+  console.warn(`⚠ task(s) with dependsOn pointing at unknown IDs: ${badDeps.map(a => `${a.id}→[${a.dependsOn.join(",")}]`).join("; ")}`);
+}
 
 const json = { generatedAt: new Date().toISOString(), activities };
 writeFileSync(new URL("../planr-activities.json", import.meta.url), JSON.stringify(json, null, 2));

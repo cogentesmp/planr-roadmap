@@ -20,7 +20,6 @@ follows on the next sync. Keep the headings exactly as written; the sync parses 
 ```planr
 days: 10
 allocation: 100
-startDate: 2026-07-31   # or: none
 dependsOn: [T1.1a]      # board IDs; [] if none
 include: true
 ```
@@ -28,7 +27,9 @@ include: true
 ```
 
 Notes:
-- **status, effort, priority** are NOT in the body — they come from the board
-  (Status column, Effort field, Priority field). Change them on the board.
+- **status, effort, priority, Start date, Target date** are NOT in the body — they come
+  from the board (Status column, Effort/Priority fields, and the Feature's Start date /
+  Target date fields). Set the dates on the issue to place it on the timeline.
+- Only **completed** and **scheduled** tasks appear on the timeline (by their dates).
 - **tier** comes from the `Tier N` label.
 - `dependsOn` uses **board** task IDs (e.g. `T1.3a`), not the app's old numbering.
