@@ -18,7 +18,17 @@ async function gql(query, variables) {
     body: JSON.stringify({ query, variables }),
   });
   const j = await r.json();
-  if (j.errors) throw new Error(JSON.stringify(j.errors));
+  if (j.errors) {
+    // The PLANR board holds issues from other repos this token can't read; GitHub
+    // returns those nodes as null alongside FORBIDDEN errors. Proceed with what we can
+    // see (our roadmap issues live in agsteward) and only fail if nothing came back.
+    const onlyForbidden = j.errors.every(e => e.type === "FORBIDDEN");
+    if (j.data && onlyForbidden) {
+      console.warn(`GraphQL: skipped ${j.errors.length} inaccessible item(s) (other repos)`);
+      return j.data;
+    }
+    throw new Error(JSON.stringify(j.errors));
+  }
   return j.data;
 }
 
