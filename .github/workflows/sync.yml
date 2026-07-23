@@ -1,0 +1,47 @@
+name: Sync roadmap & publish
+
+on:
+  schedule:
+    - cron: "0 19 * * *"     # daily ~05:00 AEST
+  workflow_dispatch: {}       # manual "run now" button
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build + encrypt roadmap data
+        env:
+          GH_TOKEN: ${{ secrets.PLANR_BOARD_TOKEN }}     # fine-grained PAT: Projects read + Issues read
+          PLANR_PASSPHRASE: ${{ secrets.PLANR_PASSPHRASE }}
+        run: node scripts/build-data.mjs
+
+      - name: Assemble site (shell HTML + ciphertext only)
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+          cp planr-activities.enc _site/planr-activities.enc
+          # NB: planr-activities.json (plaintext) is deliberately NOT copied.
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,8 @@
+# Build artifacts — never commit the plaintext roadmap; only the encrypted file is published.
+planr-activities.json
+planr-activities.enc
+_site/
+node_modules/
+
+# One-time seed data (contains sensitive roadmap detail) — never publish
+scripts/authoritative.json

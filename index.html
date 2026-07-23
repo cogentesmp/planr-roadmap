@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<!-- saved from url=(0058)https://storage.googleapis.com/terrakio_webapps/index.html -->
+<html lang="en" style="--weeks: 37;"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>PLANR Workplan Timeline · Jul–Dec 2026</title>
+<style>
+  :root{
+    /* palette — earthy priority tiers; cooler/brighter colours are reserved for task status */
+    --ground:#E9EDF1;
+    --paper:#FAFBFC;
+    --line:#C9D2DA;
+    --line-strong:#A9B6C0;
+    --text:#182228;
+    --text-soft:#566069;
+    --text-faint:#8A949C;
+    --accent:#2C6E6A;          /* chrome: buttons, focus, links */
+    --accent-ink:#1C4E4B;
+    --alarm:#C13B3B;           /* over-capacity / overflow */
+    --tier1:hsl(43 88% 58%);  /* same golden hue, strongest saturation */
+    --tier2:hsl(43 65% 58%);
+    --tier3:hsl(43 42% 58%);  /* same golden hue, softest saturation */
+    --maint:#6B7078;           /* graphite, hatched */
+    --scheduled:#356FA8;
+    --progress:#2E7D5B;
+    --completed:#6F5C9A;
+    --hold:#7A8289;
+    --pending-review:#C66A5E;
+
+    --gutter:360px;
+    --weekpx:46px;
+    --weeks:26;
+    --windowWeeks:26;
+    --timeline:calc(var(--weekpx) * var(--weeks));
+    --rowH:38px;
+    --barH:24px;
+
+    --mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    background:var(--ground);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;            /* body never scrolls sideways */
+  }
+  a{color:var(--accent);}
+
+  .wrap{max-width:1600px;margin:0 auto;padding:22px 22px 64px;}
+
+  /* ---- header ---- */
+  .head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px 26px;margin-bottom:18px;}
+  .brand{display:flex;align-items:baseline;gap:12px;}
+  .brand h1{font-size:26px;letter-spacing:-0.02em;font-weight:700;margin:0;}
+  .brand .reg{font-family:var(--mono);font-size:11px;color:var(--text-faint);
+    border:1px solid var(--line-strong);border-radius:3px;padding:2px 6px;text-transform:uppercase;letter-spacing:.08em;}
+  .head .sub{font-family:var(--mono);font-size:12px;color:var(--text-soft);letter-spacing:.02em;}
+  .head .spacer{flex:1 1 80px;}
+
+  /* ---- controls ---- */
+  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;}
+  .ctl{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--text-soft);
+    text-transform:uppercase;letter-spacing:.06em;}
+  .ctl input[type=range]{accent-color:var(--accent);width:110px;}
+  .ctl input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;}
+  .ctl.toggle{cursor:pointer;border:1px solid var(--line-strong);border-radius:5px;padding:6px 10px;}
+  .ctl .val{color:var(--text);font-weight:600;min-width:34px;}
+  .btn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    border:1px solid var(--line-strong);background:var(--paper);color:var(--text);
+    padding:7px 11px;border-radius:5px;cursor:pointer;transition:background .12s,border-color .12s;}
+  .btn:hover{border-color:var(--accent);color:var(--accent-ink);}
+  .btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  /* ---- capacity summary ---- */
+  .cap{display:grid;grid-template-columns:1.5fr repeat(4,minmax(96px,0.7fr));gap:1px;
+    background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:16px;}
+  .cap .cell{background:var(--paper);padding:11px 14px;}
+  .cap .k{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:5px;}
+  .cap .v{font-family:var(--mono);font-size:18px;font-weight:600;letter-spacing:-0.01em;}
+  .cap .v small{font-size:11px;color:var(--text-faint);font-weight:400;}
+  .meter{height:12px;border-radius:6px;background:#DCE3E8;overflow:hidden;display:flex;margin-top:7px;}
+  .meter .seg{height:100%;}
+  .meter .seg.tier{background:var(--accent);}
+  .meter .seg.over{background:var(--alarm);}
+  .cap .v.bad{color:var(--alarm);}
+  .allocation-warning{display:none;margin:-2px 0 12px;padding:9px 12px;border:1px solid rgba(193,59,59,.35);border-radius:6px;background:rgba(193,59,59,.07);color:var(--alarm);font:11px/1.4 var(--mono);}
+  .allocation-warning.show{display:block;}
+
+  /* ---- legend ---- */
+  .legend{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-bottom:10px;font-family:var(--mono);font-size:11px;color:var(--text-soft);}
+  .legend .chip{display:inline-flex;align-items:center;gap:7px;letter-spacing:.03em;}
+  .legend .sw{width:14px;height:14px;border-radius:3px;display:inline-block;}
+  .legend .sw.t1{background:var(--tier1);}
+  .legend .sw.t2{background:var(--tier2);}
+  .legend .sw.t3{background:var(--tier3);}
+  .legend .sw.mt{background:var(--maint);background-image:repeating-linear-gradient(45deg,transparent 0 3px,rgba(255,255,255,.35) 3px 6px);}
+  .legend .hint{color:var(--text-faint);margin-left:auto;text-transform:none;letter-spacing:0;}
+
+  /* ---- chart ---- */
+  .scrollX{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--paper);}
+  .grid{width:calc(var(--gutter) + var(--timeline));position:relative;}
+  .row{display:flex;align-items:stretch;position:relative;z-index:1;}
+
+  .label{position:sticky;left:0;z-index:5;width:var(--gutter);flex:0 0 var(--gutter);
+    background:var(--paper);border-right:1px solid var(--line-strong);
+    display:flex;align-items:center;gap:8px;padding:0 12px;}
+  .track{position:relative;width:var(--timeline);flex:0 0 var(--timeline);
+    background-image:repeating-linear-gradient(to right,transparent 0 calc(var(--weekpx) - 1px),var(--line) calc(var(--weekpx) - 1px) var(--weekpx));}
+
+  /* header rows */
+  .hrow.months .label,.hrow.months .track{height:26px;background:var(--ground);}
+  .hrow.weeks .label,.hrow.weeks .track{height:26px;}
+  .hrow .label{z-index:6;}
+  .month-seg{position:absolute;top:0;height:100%;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-soft);
+    border-left:1px solid var(--line-strong);}
+  .wk{position:absolute;top:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:9px;color:var(--text-faint);line-height:1.15;border-left:1px solid var(--line);}
+  .wk.qstart{border-left-color:var(--line-strong);}
+  .wk b{color:var(--text-soft);font-weight:600;font-size:9px;}
+
+  /* group header */
+  .grp .label{background:var(--ground);font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--text-soft);height:26px;}
+  .grp .track{background:var(--ground);height:26px;}
+  .grp .label .gname{font-weight:700;}
+  .grp .label .gmeta{margin-left:auto;color:var(--text-faint);}
+
+  /* activity rows */
+  .arow .label,.arow .track{height:var(--rowH);border-top:1px solid var(--line);}
+  .arow .label{cursor:pointer;}
+  .arow .inc{accent-color:var(--accent);width:14px;height:14px;flex:0 0 14px;cursor:pointer;margin:0;}
+  .arow .id{font-family:var(--mono);font-size:11px;font-weight:600;width:42px;flex:0 0 42px;color:var(--text);}
+  .arow .ttl{font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+  .arow .eff{font-family:var(--mono);font-size:10px;color:var(--text-faint);border:1px solid var(--line);border-radius:3px;padding:1px 5px;}
+  .arow.off{opacity:.55;}
+  .arow.off .ttl{text-decoration:line-through;color:var(--text-faint);}
+  .arow.off .track{background-image:none;background:repeating-linear-gradient(45deg,transparent 0 6px,rgba(169,182,192,.12) 6px 12px);}
+
+  /* bars */
+  .bar{position:absolute;top:calc((var(--rowH) - var(--barH))/2);height:var(--barH);border-radius:5px;
+    display:flex;align-items:center;padding:0 8px;cursor:pointer;user-select:none;
+    color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.02em;overflow:hidden;white-space:nowrap;
+    box-shadow:0 1px 2px rgba(24,34,40,.18);transition:box-shadow .12s;}
+  .bar:hover{box-shadow:0 2px 8px rgba(24,34,40,.28);}
+  .bar.scheduled{background:var(--scheduled);}
+  .bar.in-progress{background:var(--progress);}
+  .bar.completed{background:var(--completed);}
+  .bar.on-hold{background:var(--hold);}
+  .bar.pending-review{background:var(--pending-review);}
+  .bar.not-ready{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.24) 0 6px,transparent 6px 12px);outline:2px dashed rgba(24,34,40,.35);outline-offset:-2px;}
+  .status-pill{font-family:var(--mono);font-size:9px;color:#fff;border-radius:3px;padding:2px 5px;white-space:nowrap;text-transform:uppercase;}
+  .status-pill.scheduled{background:var(--scheduled)}.status-pill.in-progress{background:var(--progress)}
+  .status-pill.completed{background:var(--completed)}
+  .status-pill.on-hold{background:var(--hold)}.status-pill.pending-review{background:var(--pending-review)}
+  .bar .blabel{overflow:hidden;text-overflow:ellipsis;pointer-events:none;}
+
+  /* load strip */
+  .strip .label,.strip .track{height:84px;border-top:2px solid var(--line-strong);background:#EFF2F5;}
+  .strip .label{flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;}
+  .strip .label .k{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);}
+  .strip .label .pk{font-family:var(--mono);font-size:12px;font-weight:600;}
+  .lbar{position:absolute;bottom:0;width:calc(var(--weekpx) - 3px);margin-left:1px;display:flex;flex-direction:column-reverse;}
+  .lbar .lmaint{background:var(--maint);}
+  .lbar .lact{background:var(--accent);opacity:.85;}
+  .lbar.over .lact{background:var(--alarm);}
+  .capline{position:absolute;left:0;width:var(--timeline);border-top:1px dashed var(--accent-ink);}
+  .capline .tag{position:absolute;right:4px;top:-15px;font-family:var(--mono);font-size:9px;color:var(--accent-ink);background:#EFF2F5;padding:0 3px;}
+
+  /* window boundary + overflow shading (Jul–Dec window) */
+  .winover{position:absolute;top:0;bottom:0;left:calc(var(--gutter) + var(--windowWeeks)*var(--weekpx));
+    width:calc((var(--weeks) - var(--windowWeeks))*var(--weekpx));background:rgba(193,59,59,.045);pointer-events:none;z-index:0;}
+  .winbound{position:absolute;top:0;bottom:0;left:calc(var(--gutter) + var(--windowWeeks)*var(--weekpx));
+    border-left:2px dashed var(--alarm);pointer-events:none;z-index:7;}
+  .winbound span{position:absolute;top:3px;left:5px;font-family:var(--mono);font-size:9px;color:var(--alarm);
+    white-space:nowrap;background:var(--paper);padding:1px 4px;border-radius:3px;}
+  .pastover{position:absolute;left:var(--gutter);top:0;bottom:0;width:calc(var(--pastWeeks) * var(--weekpx));background:rgba(93,105,115,.13);pointer-events:none;z-index:8;border-right:1px solid rgba(93,105,115,.38);}
+  .bar.projected{opacity:.55;border:1px dashed rgba(255,255,255,.8);}
+  .bar.conflict{box-shadow:inset 0 0 0 2px var(--alarm);}
+  .bar.overdue{box-shadow:inset 0 0 0 2px var(--alarm),0 1px 2px rgba(24,34,40,.18);}
+
+  /* detail drawer */
+  .drawer{position:fixed;top:0;right:0;height:100%;width:360px;max-width:90vw;background:var(--paper);
+    border-left:1px solid var(--line-strong);box-shadow:-8px 0 28px rgba(24,34,40,.16);
+    transform:translateX(100%);transition:transform .22s ease;z-index:40;display:flex;flex-direction:column;}
+  .drawer.open{transform:translateX(0);}
+  .drawer .dhead{padding:18px 20px;border-bottom:1px solid var(--line);}
+  .drawer .dtier{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text);
+    display:inline-block;padding:2px 8px;border-radius:3px;margin-bottom:10px;}
+  .drawer .dtier.t1{background:var(--tier1);}.drawer .dtier.t2{background:var(--tier2);}.drawer .dtier.t3{background:var(--tier3);}
+  .drawer h2{margin:0;font-size:16px;letter-spacing:-0.01em;}
+  .drawer .did{font-family:var(--mono);font-size:11px;color:var(--text-faint);margin-bottom:4px;}
+  .drawer .dbody{padding:18px 20px;overflow-y:auto;flex:1;}
+  .drawer .dactions{padding:12px 20px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:flex-end;gap:9px;background:var(--paper);}
+  .drawer .dactions .save-state{margin-right:auto;font:10px var(--mono);color:var(--text-faint);}
+  .drawer .dactions .save-state.dirty{color:var(--accent-ink);}
+  .drawer .dactions .save-state.saved{color:var(--completed);}
+  .drawer .dactions .primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .drawer .dactions .primary:disabled{opacity:.45;cursor:default;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:5px;}
+  .field input,.field select,.field textarea{width:100%;font-family:var(--mono);font-size:13px;padding:7px 9px;border:1px solid var(--line-strong);border-radius:5px;background:var(--paper);color:var(--text);}
+  .field textarea{min-height:88px;resize:vertical;line-height:1.45;}
+  .field .issue-link{display:inline-flex;align-items:center;gap:5px;margin-top:7px;font:11px var(--mono);color:var(--accent-ink);text-decoration:none;}
+  .field .issue-link:hover{text-decoration:underline;}
+  .field .issue-link[hidden]{display:none;}
+  .field .check{display:flex;align-items:center;gap:8px;min-height:34px;font-family:var(--mono);font-size:13px;}
+  .field .check input{width:auto;margin:0;}
+  .field .validation{min-height:15px;margin-top:4px;font:10px var(--mono);color:var(--alarm);}
+  .field input[readonly]{background:var(--ground);color:var(--text-soft);cursor:default;border-style:dashed;}
+  .frow{display:flex;gap:12px;}.frow .field{flex:1;}
+  .note{font-size:12.5px;line-height:1.55;color:var(--text-soft);background:var(--ground);border-radius:6px;padding:12px 13px;border-left:3px solid var(--line-strong);}
+  .drawer .dclose{position:absolute;top:14px;right:14px;border:none;background:none;font-size:20px;line-height:1;cursor:pointer;color:var(--text-faint);}
+  .drawer .dclose:hover{color:var(--text);}
+
+  .tip{position:fixed;z-index:60;background:var(--text);color:#fff;font-family:var(--mono);font-size:11px;line-height:1.5;
+    padding:8px 10px;border-radius:6px;max-width:300px;pointer-events:none;opacity:0;transition:opacity .1s;box-shadow:0 4px 16px rgba(0,0,0,.3);}
+  .tip.show{opacity:1;}
+  .tip b{color:#A9E0CF;}
+
+  .foot{margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--text-faint);line-height:1.6;}
+  .modal{position:fixed;z-index:100;left:50%;top:50%;transform:translate(-50%,-50%);width:min(620px,calc(100vw - 32px));
+    border:1px solid var(--line-strong);border-radius:9px;background:var(--paper);color:var(--text);padding:0;
+    box-shadow:0 0 0 100vmax rgba(24,34,40,.46),0 18px 60px rgba(24,34,40,.28);}
+  .modal[hidden]{display:none;}
+  .modal .mhead{padding:16px 18px;border-bottom:1px solid var(--line);font-weight:700;font-size:16px;}
+  .modal .mbody{padding:18px;}.modal .mactions{padding:12px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:9px;}
+  .modal textarea{display:block;width:100%;min-height:240px;resize:vertical;border:1px solid var(--line-strong);border-radius:6px;
+    padding:10px;font:11px/1.45 var(--mono);background:#fff;color:var(--text);}
+  .modal input[type=file]{display:block;width:100%;margin-bottom:12px;font:12px var(--mono);}
+  .modal .msg{min-height:20px;margin-top:8px;font:11px var(--mono);color:var(--alarm);}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="brand">
+      <h1>PLANR&nbsp;Task Tracker</h1>
+      <span class="reg">Jul–Dec 2026</span>
+    </div>
+    <span class="sub">Track delivery, dates and dependencies · click a task to update it</span>
+    <span class="spacer"></span>
+    <div class="controls">
+      <span class="ctl">Today <span class="val" id="todayVal"></span></span>
+      <button class="btn" id="exportBtn">Export</button>
+      <button class="btn" id="importBtn">Import</button>
+      <button class="btn" id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <div class="cap" id="cap">
+    <div class="cell">
+      <div class="k">Tracking window</div>
+      <div class="v" id="capV">26 <small>weeks</small></div>
+      <div class="meter" id="meter"><div class="seg tier" style="width:73.03370786516854%"></div><div class="seg over" style="width:26.966292134831466%"></div></div>
+    </div>
+    <div class="cell"><div class="k">Total tasks</div><div class="v" id="capTier">—</div></div>
+    <div class="cell"><div class="k">Completed</div><div class="v" id="capMaint">—</div></div>
+    <div class="cell"><div class="k">In progress</div><div class="v" id="capFree">—</div></div>
+    <div class="cell"><div class="k">Scheduled</div><div class="v" id="capPeak">—</div></div>
+  </div>
+  <div class="allocation-warning" id="allocationWarning" role="status"></div>
+
+  <div class="legend">
+    <span class="chip"><span class="sw" style="background:var(--completed)"></span>Completed</span>
+    <span class="chip"><span class="sw" style="background:var(--progress)"></span>In progress</span>
+    <span class="chip"><span class="sw" style="background:var(--scheduled)"></span>Scheduled</span>
+    <span class="chip"><span class="sw" style="background:var(--hold)"></span>On hold</span>
+    <span class="chip"><span class="sw" style="background:var(--pending-review)"></span>Pending review</span>
+    <span class="chip"><span class="sw" style="background:repeating-linear-gradient(135deg,#8fa1b0 0 4px,#d7dde2 4px 8px)"></span>Not ready</span>
+    <span class="hint">Past weeks are shaded · dashed bars are projected · undated work follows tier and readiness priority</span>
+    <span class="hint"><b>Allocation:</b> 100% means full delivery-team effort after reserving <span id="maintPctNote">10%</span> for maintenance.</span>
+  </div>
+
+  <div class="scrollX" id="scrollX">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="foot" id="sourceNote">
+    The tracker starts on <b>Monday 6 July 2026</b>. Completed, in-progress and scheduled tasks require dates aligned with today. Undated work respects internal dependencies, then runs ready on-hold Tier 1, ready on-hold Tier 2, not-ready Tier 1, not-ready Tier 2, ready on-hold Tier 3 and not-ready Tier 3. The embedded task data is used when no sibling <b>planr-activities.json</b> is available.
+  </div>
+</div>
+
+<div class="modal" id="exportDialog" role="dialog" aria-modal="true" hidden>
+  <div class="mhead">Export current plan</div>
+  <div class="mbody"><p>The text below is the current browser plan. Download it or copy it manually.</p><textarea id="exportText" readonly></textarea></div>
+  <div class="mactions"><button class="btn" id="exportClose">Close</button><button class="btn" id="downloadBtn">Download JSON</button></div>
+</div>
+<div class="modal" id="importDialog" role="dialog" aria-modal="true" hidden>
+  <div class="mhead">Import plan</div>
+  <div class="mbody"><input type="file" id="importFile" accept="application/json,.json"><textarea id="importText" placeholder="Choose a JSON file above or paste JSON here"></textarea><div class="msg" id="importMsg"></div></div>
+  <div class="mactions"><button class="btn" id="importClose">Cancel</button><button class="btn" id="importApply">Apply import</button></div>
+</div>
+<div class="modal" id="resetDialog" role="dialog" aria-modal="true" hidden>
+  <div class="mhead">Reset browser changes?</div>
+  <div class="mbody">This discards all saved browser edits and restores the authoritative task data embedded in this HTML.</div>
+  <div class="mactions"><button class="btn" id="resetClose">Cancel</button><button class="btn" id="resetConfirm">Reset to authoritative data</button></div>
+</div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <button class="dclose" id="dclose" aria-label="Close">×</button>
+  <div class="dhead">
+    <span class="dtier t1" id="dTier">Tier 1</span>
+    <div class="did" id="dId">T1.6b</div>
+    <h2 id="dTitle">Marketplace: backend prototype</h2>
+  </div>
+  <div class="dbody">
+    <div class="field"><label>Task ID</label><input type="text" id="dIdInput" autocomplete="off"><div class="validation" id="dIdError"></div></div>
+    <div class="field"><label>Title</label><input type="text" id="dTitleInput"></div>
+    <div class="field"><label>Description</label><textarea id="dDescription"></textarea></div>
+    <div class="field"><label>GitHub issue</label><input type="url" id="dGithubIssue" placeholder="https://github.com/org/repo/issues/123"><a class="issue-link" id="dGithubIssueLink" href="#" target="_blank" rel="noopener noreferrer" hidden>Open GitHub issue ↗</a></div>
+    <div class="frow">
+      <div class="field"><label>Effort (team-days)</label><input type="number" id="dDays" min="1" step="1"></div>
+      <div class="field"><label>Effort (calculated)</label><select id="dEffort" disabled><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option></select></div>
+    </div>
+    <div class="field"><label>Allocation (%)</label><input type="number" id="dAllocation" min="1" max="100" step="5"></div>
+    <div class="frow">
+      <div class="field"><label>Start date</label><input type="date" id="dStartDate"></div>
+      <div class="field"><label>End date (calculated)</label><input type="date" id="dEndDate" readonly></div>
+    </div>
+    <div class="validation" id="dDateError"></div>
+    <div class="frow"><div class="field"><label>Status</label><select id="dStatus"><option>in progress</option><option>scheduled</option><option>completed</option><option>pending review</option><option>on hold</option></select></div><div class="field"><label>Ready</label><span class="check"><input type="checkbox" id="dReady"> Ready to start</span></div></div>
+    <div class="field"><label>Depends on (task IDs, comma-separated)</label><input type="text" id="dDependsOn" placeholder="e.g. T1.1a, T2.4"></div>
+    <div class="field"><label>External dependencies</label><textarea id="dExternalDependencies"></textarea></div>
+    <div class="field"><label>Completion criteria</label><textarea id="dCompletionCriteria"></textarea></div>
+    <div class="field"><label>Risk</label><textarea id="dRisk"></textarea></div>
+    <div class="frow">
+      <div class="field"><label>Tier</label>
+        <select id="dTierSel"><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option></select>
+      </div>
+      <div class="field"><label>Included</label><span class="check"><input type="checkbox" id="dInclude"> Include in plan</span></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Start (week #)</label><input type="number" id="dStart" min="1" max="60" step="0.25" readonly=""></div>
+      <div class="field"><label>Span (calendar weeks)</label><input type="number" id="dDur" readonly="" tabindex="-1"></div>
+    </div>
+    <div class="field"><label>Window</label><div class="note" id="dWindow" style="border-left-color:var(--accent)">Excluded from the plan — tick its box to include it.</div></div>
+  </div>
+  <div class="dactions"><span class="save-state" id="dSaveState">No unsaved changes</span><button class="btn" id="dCancel">Cancel</button><button class="btn primary" id="dSave" disabled>Save changes</button></div>
+</aside>
+
+<div class="tip" id="tip" style="left: 365px; top: 394px;"><b>T1.1b</b> NBAS v2.1 Docker standalone code<br>S · 2 team-days · 0.4 wk<br>6 Jul → 6 Jul</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- constants ----------
+  var WEEK0  = new Date(2026, 6, 6); // Monday 6 July 2026, the first full week in July
+  var TODAY  = new Date(); TODAY.setHours(0,0,0,0);
+  var WINDOW_END = new Date(2027, 0, 4); // boundary after the week commencing 28 Dec 2026
+  var WINDOW = Math.max(1,Math.round((WINDOW_END-WEEK0)/(7*24*60*60*1000)));
+  var MAXW   = 60;            // max timeline length (allow overflow past the window)
+  var TL     = 26;            // current timeline length, computed each render
+  var DAYS_WK = 5;            // team working-days per week (both devs on one activity)
+  var MAINT_PCT = 10;         // reserved outside the delivery allocations shown here
+  var STORE  = "planr-timeline-v13";
+
+  // ---------- authoritative embedded task data ----------
+  // Complete embedded snapshot of planr-activities.json for direct file:// use.
+  // Regenerated from the JSON; do not hand-edit task data in this HTML block.
+  var AUTHORITATIVE = [];
+  var AUTHORITATIVE_BY_ID = {};
+  AUTHORITATIVE.forEach(function(a){ AUTHORITATIVE_BY_ID[a.id]=a; });
+
+  // ---------- state ----------
+  var state = {acts:[]};
+
+  // Calendar duration expands as allocation falls: 5 days at 50% takes 2 weeks.
+  function allocationOf(a){ var n=Number(a.allocation); return isFinite(n)?Math.max(1,Math.min(100,n)):100; }
+  function allocatedDays(a){ return a.days/(allocationOf(a)/100); }
+  function widthWk(a){ return allocatedDays(a) / DAYS_WK; }
+
+  function parseId(id){ var m=/^T(\d+)\.(\d+)([a-z]?)$/.exec(id)||[]; return {t:+m[1]||0,n:+m[2]||0,s:m[3]||""}; }
+  function byNum(a,b){ var x=parseId(a.id), y=parseId(b.id); return x.t-y.t || x.n-y.n || (x.s<y.s?-1:x.s>y.s?1:0); }
+  function statusClass(s){ return String(s||"pending review").toLowerCase().trim().replace(/\s+/g,"-"); }
+  function statusRank(a){ var ranks={"in progress":0,"scheduled":1,"completed":2,"pending review":3,"on hold":4}; var s=String(a.status||"").toLowerCase(); return ranks[s]!=null?ranks[s]:5; }
+  function bySchedule(a,b){ return statusRank(a)-statusRank(b) || a.tier-b.tier || byNum(a,b); }
+  function projectionRank(a){
+    if(a.status==="on hold"&&a.ready&&a.tier===1)return 1;
+    if(a.status==="on hold"&&a.ready&&a.tier===2)return 2;
+    if(!a.ready&&a.tier===1)return 3;
+    if(!a.ready&&a.tier===2)return 4;
+    if(a.status==="on hold"&&a.ready&&a.tier===3)return 5;
+    if(!a.ready&&a.tier===3)return 6;
+    return 7;
+  }
+  function byProjectionPriority(a,b){ return projectionRank(a)-projectionRank(b) || byNum(a,b); }
+  function isTaskId(value){ return /^T\d+\.\d+[a-z]?$/.test(String(value||"").trim()); }
+  function legacyDependsOn(value){ var d=String(value||"").trim(); return isTaskId(d)?[d]:[]; }
+  function legacyExternalDependency(value){ var d=String(value||"").trim(); return (!d || d==="Nil" || isTaskId(d))?"":d; }
+  function taskDependencies(a){ return Array.isArray(a.dependsOn)?a.dependsOn:[]; }
+  function normalizeStatus(value){ var s=String(value||"pending review").toLowerCase().trim(); return s==="to be confirmed"?"pending review":s; }
+  function effortForDays(days){ return days<=3?"S":days<=7?"M":days<=12?"L":"XL"; }
+
+  function defaults(){
+    var acts=AUTHORITATIVE.map(normAct);
+    acts.sort(byNum);
+    return {acts:acts};
+  }
+
+  function meta(id){ return AUTHORITATIVE_BY_ID[id]||null; }
+
+  // normalise an activity record from either the internal ("on") or the file ("include") shape,
+  // filling any missing attribute from the built-in defaults so partial edits still work
+  function normAct(o){
+    var base=meta(o.id)||{};
+    var a={
+      id:o.id,
+      tier:(o.tier!=null)?o.tier:(base.tier||3),
+      days:(typeof o.days==="number")?o.days:(base.days||1),
+      effort:effortForDays((typeof o.days==="number")?o.days:(base.days||1)),
+      title:(o.title!=null)?o.title:(base.title||o.id),
+      // Accept legacy "note" records, but keep the browser state and exports on the new schema.
+      description:(o.description!=null&&o.description!=="")?o.description:((o.note!=null&&o.note!=="")?o.note:(base.description||"")),
+      completionCriteria:(o.completionCriteria!=null&&o.completionCriteria!=="")?o.completionCriteria:(base.completionCriteria||""),
+      githubIssue:(o.githubIssue!=null&&o.githubIssue!=="")?o.githubIssue:(base.githubIssue||""),
+      risk:(o.risk!=null&&o.risk!=="")?o.risk:(base.risk||""),
+      dependsOn:Array.isArray(o.dependsOn)?o.dependsOn.slice():legacyDependsOn(o.dependency!=null?o.dependency:base.dependency),
+      externalDependencies:(o.externalDependencies!=null)?o.externalDependencies:legacyExternalDependency(o.dependency!=null?o.dependency:base.dependency),
+      startDate:(o.startDate!=null)?o.startDate:(base.startDate||null),
+      endDate:(o.endDate!=null)?o.endDate:(base.endDate||null),
+      allocation:(typeof o.allocation==="number")?o.allocation:((typeof base.allocation==="number")?base.allocation:100),
+      ready:(typeof o.ready==="boolean")?o.ready:(base.ready!==false),
+      status:normalizeStatus((o.status!=null)?o.status:(base.status||"pending review")),
+      on:(o.on!==false && o.include!==false)
+    };
+    syncEndDate(a); return a;
+  }
+
+  // shape written to exported / uploaded JSON (full, human-editable)
+  function exportData(){
+    return { activities: state.acts.slice().sort(byNum).map(function(a){
+        a.effort=effortForDays(a.days); syncEndDate(a);
+        return {id:a.id, tier:a.tier, days:a.days, title:a.title, description:a.description,
+          completionCriteria:a.completionCriteria, githubIssue:a.githubIssue, risk:a.risk, include:(a.on!==false),
+          dependsOn:a.dependsOn.slice(), externalDependencies:a.externalDependencies, startDate:a.startDate,
+          allocation:allocationOf(a), ready:a.ready, status:a.status};
+      }) };
+  }
+  function importData(data){
+    var arr=data.activities||data.acts; if(!arr||!arr.length) throw 0;
+    state.acts=arr.map(normAct);
+  }
+
+  function load(){
+    var saved=null;
+    try{saved=JSON.parse(localStorage.getItem(STORE));}catch(e){}
+    if(saved && saved.acts && saved.acts.length){
+      state.acts=saved.acts.map(normAct);
+      return true;
+    }else{ state=defaults(); return false; }
+  }
+  function save(){ try{localStorage.setItem(STORE,JSON.stringify({acts:exportData().activities}));}catch(e){} }
+  function actById(id){ for(var i=0;i<state.acts.length;i++){if(state.acts[i].id===id)return state.acts[i];} return null; }
+
+  // ---------- explicit tracking dates + dependency-aware projections ----------
+  function parseDate(value){ if(!value)return null; var p=String(value).split("-"); if(p.length!==3)return null; var d=new Date(+p[0],+p[1]-1,+p[2]); return isNaN(d.getTime())?null:d; }
+  function isoDate(d){ return d?d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"):null; }
+  function dateWeek(d){ return (d-WEEK0)/(7*24*60*60*1000); }
+  function addWorkingDays(start,days){ var d=new Date(start), left=Math.max(1,Math.ceil(days))-1; while(left>0){ d.setDate(d.getDate()+1); if(d.getDay()!==0&&d.getDay()!==6)left--; } return d; }
+  function syncEndDate(a){ var s=parseDate(a.startDate); a.endDate=s?isoDate(addWorkingDays(s,allocatedDays(a))):null; }
+  function taskEndWeek(a){ return a._ee!=null?a._ee:(a._es!=null?a._es+widthWk(a):null); }
+  function computeEff(){
+    var all={}, cursor=Math.max(0,dateWeek(TODAY));
+    state.acts.forEach(function(a){
+      all[a.id]=a; a._es=null; a._ee=null; a._blocked=false; a._projected=false; a._conflict=false; a._overdue=false;
+      if(a.on===false)return;
+      syncEndDate(a);
+      var s=parseDate(a.startDate), e=parseDate(a.endDate);
+      if(s){ a._es=dateWeek(s); a._ee=dateWeek(e||addWorkingDays(s,a.days))+1/7; cursor=Math.max(cursor,a._ee); if(dateValidation(a,a.status))a._conflict=true; if(a.status==="in progress"&&e<TODAY)a._overdue=true; }
+    });
+    // Explicit dates stay where the user put them, but dependency violations are flagged.
+    state.acts.forEach(function(a){
+      if(a.on===false || a._es==null)return;
+      taskDependencies(a).forEach(function(id){ var dep=all[id], de=dep&&taskEndWeek(dep); if(!dep||dep.on===false||de==null||a._es<de) a._conflict=true; });
+    });
+    var pending=state.acts.filter(function(a){return a.on!==false&&a._es==null;}).sort(byNum), placed={};
+    state.acts.forEach(function(a){if(a._es!=null)placed[a.id]=true;});
+    while(pending.length){
+      var invalid=pending.filter(function(a){
+        return taskDependencies(a).some(function(d){ return !all[d] || all[d].on===false || all[d]._blocked; });
+      });
+      if(invalid.length){ invalid.forEach(function(a){ a._blocked=true; pending.splice(pending.indexOf(a),1); }); continue; }
+      var eligible=pending.filter(function(a){return taskDependencies(a).every(function(d){return placed[d];});}).sort(byProjectionPriority);
+      if(!eligible.length){ pending.forEach(function(a){a._blocked=true;}); break; }
+      var a=eligible[0];
+      var depEnd=cursor; taskDependencies(a).forEach(function(id){depEnd=Math.max(depEnd,taskEndWeek(all[id])||0);});
+      a._es=depEnd; a._ee=a._es+widthWk(a); a._projected=true; cursor=a._ee; placed[a.id]=true; pending.splice(pending.indexOf(a),1);
+    }
+  }
+  function maxEnd(){ var m=0; state.acts.forEach(function(a){ if(a.on!==false&&a._es!=null) m=Math.max(m,taskEndWeek(a)); }); return m; }
+
+  // ---------- dates ----------
+  var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function weekDate(w){ var d=new Date(WEEK0.getTime()); d.setDate(d.getDate()+Math.round(w*7)); return d; }
+  function fmtCalendarDate(d){ return d.getDate()+" "+MON[d.getMonth()]+(d.getFullYear()!==2026?" '"+String(d.getFullYear()).slice(2):""); }
+  function fmtDate(w){ return fmtCalendarDate(weekDate(w)); }
+  function taskStartLabel(a){ var d=parseDate(a.startDate); return d?fmtCalendarDate(d):fmtDate(a._es); }
+  function taskEndLabel(a){ var d=parseDate(a.endDate); return d?fmtCalendarDate(d):fmtDate(taskEndWeek(a)); }
+
+  // ---------- DOM build ----------
+  var grid=document.getElementById("grid");
+  var barEls={};
+
+  function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+  function headerRows(){
+    var html="";
+    // month band (year-aware)
+    html+='<div class="row hrow months"><div class="label"></div><div class="track">';
+    var segStart=0, curK=monKey(0);
+    for(var w=1;w<=TL;w++){
+      var k=(w<TL)?monKey(w):-1;
+      if(k!==curK){
+        var d=weekDate(segStart);
+        var lbl=MON[d.getMonth()]+(d.getFullYear()!==2026?" '"+String(d.getFullYear()).slice(2):"");
+        html+='<div class="month-seg" style="left:'+(segStart*46)+'px;width:'+((w-segStart)*46)+'px">'+lbl+'</div>';
+        segStart=w; curK=k;
+      }
+    }
+    html+='</div></div>';
+    // week numbers
+    html+='<div class="row hrow weeks"><div class="label"><span style="font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint)">Week / w-commencing</span></div><div class="track">';
+    for(var i=0;i<TL;i++){
+      var q=(i%4===0)?" qstart":"";
+      html+='<div class="wk'+q+'" style="left:'+(i*46)+'px;width:46px"><b>W'+(i+1)+'</b>'+fmtDate(i)+'</div>';
+    }
+    html+='</div></div>';
+    return html;
+  }
+  function monKey(w){ var d=weekDate(w); return d.getFullYear()*12+d.getMonth(); }
+
+  function groupRow(tier,count,dd){
+    var names={1:"Tier 1 · must-do",2:"Tier 2 · high value",3:"Tier 3 · scope / later"};
+    return '<div class="row grp"><div class="label"><span class="gname">'+names[tier]+'</span>'+
+      '<span class="gmeta">'+count+' · '+dd+'d</span></div><div class="track"></div></div>';
+  }
+
+  function actRow(a){
+    var off=(a.on===false);
+    var sc=statusClass(a.status), blocked=a._blocked;
+    var bar = (off||blocked) ? '' :
+      '<div class="bar '+sc+(a.ready?'':' not-ready')+(a._projected?' projected':'')+(a._conflict?' conflict':'')+(a._overdue?' overdue':'')+'" data-id="'+a.id+'" style="left:'+(a._es*46)+'px;width:'+((taskEndWeek(a)-a._es)*46)+'px">'+
+      '<span class="blabel">'+a.id+' · '+a.days+'d @ '+allocationOf(a)+'%</span></div>';
+    return '<div class="row arow'+(off?' off':'')+'" data-id="'+a.id+'">'+
+      '<div class="label">'+
+        '<input type="checkbox" class="inc" data-id="'+a.id+'"'+(off?'':' checked')+' title="Include in plan" />'+
+        '<span class="id">'+a.id+'</span>'+
+        '<span class="ttl" title="'+esc(a.title)+(blocked?' — blocked by dependency':'')+'">'+esc(a.title)+'</span>'+
+        '<span class="status-pill '+sc+'">'+esc(a.status)+'</span></div>'+
+      '<div class="track">'+bar+'</div></div>';
+  }
+
+  function tierStats(t){   // included activities only
+    var c=0,d=0; state.acts.forEach(function(a){if(a.tier===t&&a.on!==false){c++;d+=a.days;}});
+    return {c:c,d:Math.round(d*10)/10};
+  }
+
+  function render(){
+    computeEff();
+    TL=Math.min(MAXW, Math.max(WINDOW, Math.ceil(maxEnd())+1));
+    document.documentElement.style.setProperty("--weeks", TL);
+    document.documentElement.style.setProperty("--windowWeeks", WINDOW);
+    document.documentElement.style.setProperty("--pastWeeks", Math.max(0,Math.min(TL,Math.floor(dateWeek(TODAY)))));
+
+    var html=headerRows();
+    [1,2,3].forEach(function(t){
+      var st=tierStats(t);
+      html+=groupRow(t,st.c,st.d);
+      state.acts.filter(function(a){return a.tier===t;}).sort(byNum).forEach(function(a){ html+=actRow(a); });
+    });
+    html+='<div class="pastover"></div><div class="winover"></div><div class="winbound"><span>Window ends · Dec 2026 →</span></div>';
+    grid.innerHTML=html;
+
+    Array.prototype.forEach.call(grid.querySelectorAll(".bar"),function(el){ wireBar(el); });
+    Array.prototype.forEach.call(grid.querySelectorAll(".inc"),function(cb){
+      cb.addEventListener("change",function(){
+        var desired=this.checked, id=this.getAttribute("data-id"); this.checked=!desired;
+        openDrawer(id); draftAct.on=desired; document.getElementById("dInclude").checked=desired;
+        markDraftDirty(); refreshDraftDerived();
+      });
+    });
+    Array.prototype.forEach.call(grid.querySelectorAll(".arow .label"),function(lb){
+      lb.addEventListener("click",function(e){ if(e.target.closest(".inc"))return; openDrawer(lb.parentNode.getAttribute("data-id")); });
+    });
+    renderCap();
+  }
+
+  function deliveryCapacityPeak(activities){
+    var byDay={};
+    activities.filter(function(a){return a.on!==false&&(a.status==="in progress"||a.status==="scheduled");}).forEach(function(a){
+      var start=parseDate(a.startDate), end=parseDate(a.endDate); if(!start||!end)return;
+      for(var d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
+        if(d.getDay()===0||d.getDay()===6)continue;
+        var key=isoDate(d), day=byDay[key]||(byDay[key]={total:0,ids:[]});
+        day.total+=allocationOf(a); day.ids.push(a.id);
+      }
+    });
+    var peak=0, dates=[], ids=[];
+    Object.keys(byDay).sort().forEach(function(key){
+      var day=byDay[key];
+      if(day.total>peak){ peak=day.total; dates=[key]; ids=day.ids.slice(); }
+      else if(day.total===peak&&peak>0){ dates.push(key); ids=ids.concat(day.ids); }
+    });
+    ids=ids.filter(function(id,i,arr){return arr.indexOf(id)===i;}).sort();
+    return {total:peak,dates:dates,ids:ids};
+  }
+
+  function renderCap(){
+    var active=state.acts.filter(function(a){return a.on!==false;}), counts={};
+    active.forEach(function(a){counts[a.status]=(counts[a.status]||0)+1;});
+    document.getElementById("capV").innerHTML=WINDOW+' <small>weeks</small>';
+    document.getElementById("capTier").textContent=active.length;
+    document.getElementById("capMaint").textContent=counts.completed||0;
+    var current=active.filter(function(a){return a.status==="in progress";}), currentAllocation=current.reduce(function(sum,a){return sum+allocationOf(a);},0);
+    var inProgressCap=document.getElementById("capFree");
+    inProgressCap.innerHTML=current.length+' <small>/ '+currentAllocation+'%</small>'; inProgressCap.className="v"+(currentAllocation>100?" bad":"");
+    document.getElementById("capPeak").textContent=counts.scheduled||0;
+    var overdue=current.filter(function(a){return a._overdue;}), warnings=[], capacity=deliveryCapacityPeak(active);
+    var scheduleIssues=active.map(function(a){return {id:a.id,message:dateValidation(a,a.status)};}).filter(function(x){return x.message;});
+    if(capacity.total>100){
+      var first=parseDate(capacity.dates[0]), last=parseDate(capacity.dates[capacity.dates.length-1]);
+      var period=fmtCalendarDate(first)+(capacity.dates.length>1?" to "+fmtCalendarDate(last):"");
+      warnings.push("Allocation warning: scheduled and in-progress work reaches "+capacity.total+"% from "+period+" ("+capacity.ids.join(", ")+").");
+    }else if(currentAllocation>100){
+      warnings.push("Allocation warning: in-progress tasks total "+currentAllocation+"% ("+(currentAllocation-100)+"% over available capacity).");
+    }
+    if(scheduleIssues.length)warnings.push("Schedule warning: "+scheduleIssues.map(function(x){return x.id+" "+x.message;}).join("  "));
+    if(overdue.length)warnings.push("Overdue: "+overdue.map(function(a){return a.id;}).join(", ")+" passed the calculated end date.");
+    var warning=document.getElementById("allocationWarning");
+    warning.className="allocation-warning"+(warnings.length?" show":""); warning.textContent=warnings.join("  ");
+    var done=counts.completed||0, prog=counts["in progress"]||0, sched=counts.scheduled||0, denom=Math.max(1,active.length);
+    document.getElementById("meter").innerHTML='<div class="seg" style="width:'+(done/denom*100)+'%;background:var(--completed)"></div><div class="seg" style="width:'+(prog/denom*100)+'%;background:var(--progress)"></div><div class="seg" style="width:'+(sched/denom*100)+'%;background:var(--scheduled)"></div>';
+  }
+
+  // ---------- bar: click to open, hover for detail ----------
+  function wireBar(el){
+    var id=el.getAttribute("data-id");
+    el.addEventListener("click",function(e){ e.stopPropagation(); openDrawer(id); });
+    el.addEventListener("mousemove",function(e){
+      var a=actById(id);
+      showTip("<b>"+a.id+"</b> "+esc(a.title)+"<br>"+esc(a.status)+(a._projected?" · projected":"")+(a._overdue?" · OVERDUE":"")+" · "+(a.ready?"ready":"not ready")+"<br>"+esc(a.effort)+" · "+a.days+" team-days @ "+allocationOf(a)+"%<br>"+taskStartLabel(a)+" → "+taskEndLabel(a),e);
+    });
+    el.addEventListener("mouseleave",hideTip);
+  }
+
+  // ---------- tooltip ----------
+  var tip=document.getElementById("tip");
+  function showTip(html,e){
+    tip.innerHTML=html; tip.classList.add("show");
+    var x=e.clientX+14, y=e.clientY+14;
+    if(x+tip.offsetWidth>window.innerWidth-8) x=e.clientX-tip.offsetWidth-14;
+    if(y+tip.offsetHeight>window.innerHeight-8) y=e.clientY-tip.offsetHeight-14;
+    tip.style.left=x+"px"; tip.style.top=y+"px";
+  }
+  function hideTip(){ tip.classList.remove("show"); }
+
+  // ---------- drawer ----------
+  var drawer=document.getElementById("drawer"), curId=null, draftAct=null, draftDirty=false;
+  function setDraftState(message,kind){
+    var el=document.getElementById("dSaveState"); el.textContent=message; el.className="save-state"+(kind?" "+kind:"");
+    document.getElementById("dSave").disabled=!draftDirty;
+  }
+  function markDraftDirty(){ draftDirty=true; setDraftState("Unsaved changes","dirty"); }
+  function openDrawer(id){
+    curId=id; var source=actById(id); if(!source)return;
+    var a=normAct(JSON.parse(JSON.stringify(source))); draftAct=a; draftDirty=false;
+    drawer.classList.add("open"); drawer.setAttribute("aria-hidden","false");
+    var dt=document.getElementById("dTier"); dt.className="dtier t"+a.tier; dt.textContent="Tier "+a.tier;
+    document.getElementById("dId").textContent=a.id;
+    document.getElementById("dTitle").textContent=a.title;
+    document.getElementById("dIdInput").value=a.id;
+    document.getElementById("dIdError").textContent="";
+    document.getElementById("dTitleInput").value=a.title;
+    document.getElementById("dDays").value=a.days;
+    document.getElementById("dEffort").value=a.effort;
+    document.getElementById("dAllocation").value=allocationOf(a);
+    document.getElementById("dTierSel").value=a.tier;
+    document.getElementById("dInclude").checked=a.on!==false;
+    var ds=document.getElementById("dStart");
+    ds.value=(a.on===false)?"—":Math.round((a._es+1)*100)/100; ds.readOnly=true;
+    document.getElementById("dDur").value=a._es==null?"—":Math.round((taskEndWeek(a)-a._es)*100)/100;
+    document.getElementById("dStartDate").value=a.startDate||"";
+    document.getElementById("dEndDate").value=a.endDate||"";
+    var startInput=document.getElementById("dStartDate"), todayIso=isoDate(TODAY);
+    startInput.min=(a.status==="scheduled"||a.status==="on hold")?todayIso:"";
+    startInput.max=(a.status==="in progress"||a.status==="completed")?todayIso:"";
+    document.getElementById("dDateError").textContent="";
+    document.getElementById("dDescription").value=a.description;
+    document.getElementById("dCompletionCriteria").value=a.completionCriteria;
+    document.getElementById("dGithubIssue").value=a.githubIssue;
+    updateGithubLink(a.githubIssue);
+    document.getElementById("dRisk").value=a.risk;
+    document.getElementById("dStatus").value=a.status;
+    document.getElementById("dReady").checked=a.ready;
+    document.getElementById("dDependsOn").value=a.dependsOn.join(", ");
+    document.getElementById("dExternalDependencies").value=a.externalDependencies;
+    var locked=a.status==="completed";
+    document.getElementById("dDays").disabled=locked;
+    document.getElementById("dEffort").disabled=true;
+    document.getElementById("dAllocation").disabled=locked;
+    document.getElementById("dStatus").disabled=locked;
+    updWindow(a);
+    setDraftState("No unsaved changes","");
+  }
+  function updWindow(a){
+    var wk=widthWk(a);
+    if(a.on===false){ document.getElementById("dWindow").textContent="Excluded from the plan — tick its box to include it."; return; }
+    if(a._blocked){ document.getElementById("dWindow").textContent="Blocked: one or more prerequisite tasks ("+(a.dependsOn.join(", ")||"unknown")+") are missing, excluded, blocked, or part of a dependency cycle."; return; }
+    if(a._conflict){ document.getElementById("dWindow").textContent="Date conflict: this task begins before one or more internal dependencies finish."; return; }
+    if(a._overdue){ document.getElementById("dWindow").textContent="Overdue: calculated end date was "+taskEndLabel(a)+". Update status, effort, allocation, or start date."; return; }
+    document.getElementById("dWindow").textContent=taskStartLabel(a)+" → "+taskEndLabel(a)+"  ·  "+(a._projected?"Projected from dependencies and task order":"Explicit tracking dates");
+  }
+  function closeDrawer(){ drawer.classList.remove("open"); drawer.setAttribute("aria-hidden","true"); curId=null; draftAct=null; draftDirty=false; }
+  document.getElementById("dclose").addEventListener("click",closeDrawer);
+  document.getElementById("dCancel").addEventListener("click",closeDrawer);
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeDrawer(); });
+
+  function updateGithubLink(value){
+    var link=document.getElementById("dGithubIssueLink"), url=String(value||"").trim();
+    var valid=/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/issues\/\d+(?:[/?#].*)?$/.test(url);
+    link.hidden=!valid; link.href=valid?url:"#";
+    if(valid){ var match=url.match(/\/issues\/(\d+)/); link.textContent="Open GitHub issue #"+(match?match[1]:"")+" ↗"; }
+  }
+  function refreshDraftDerived(){
+    if(!draftAct)return;
+    draftAct.effort=effortForDays(draftAct.days); syncEndDate(draftAct);
+    document.getElementById("dEffort").value=draftAct.effort;
+    document.getElementById("dEndDate").value=draftAct.endDate||"";
+    updateGithubLink(draftAct.githubIssue);
+    document.getElementById("dTitle").textContent=draftAct.title;
+    document.getElementById("dId").textContent=draftAct.id;
+    var dt=document.getElementById("dTier"); dt.className="dtier t"+draftAct.tier; dt.textContent="Tier "+draftAct.tier;
+    var startInput=document.getElementById("dStartDate"), todayIso=isoDate(TODAY);
+    startInput.min=(draftAct.status==="scheduled"||draftAct.status==="on hold")?todayIso:"";
+    startInput.max=(draftAct.status==="in progress"||draftAct.status==="completed")?todayIso:"";
+    document.getElementById("dWindow").textContent="Unsaved changes — save to update the dashboard and calculated schedule.";
+  }
+  function bindField(elId,fn,eventName,refreshDerived){
+    document.getElementById(elId).addEventListener(eventName||"input",function(){
+      if(!draftAct)return; fn(draftAct,this.value,this); markDraftDirty();
+      if(refreshDerived) refreshDraftDerived();
+    });
+  }
+  bindField("dDays",function(a,v){ var n=parseFloat(v); if(!isNaN(n)&&n>0)a.days=Math.max(1,Math.round(n)); },"change",true);
+  bindField("dAllocation",function(a,v){ var n=parseFloat(v); if(!isNaN(n))a.allocation=Math.max(1,Math.min(100,n)); },"change",true);
+  bindField("dTitleInput",function(a,v){ a.title=v; },"input",true);
+  bindField("dDescription",function(a,v){ a.description=v; });
+  bindField("dCompletionCriteria",function(a,v){ a.completionCriteria=v; });
+  bindField("dGithubIssue",function(a,v){ a.githubIssue=v; },"input",true);
+  bindField("dRisk",function(a,v){ a.risk=v; });
+  bindField("dDependsOn",function(a,v){
+    a.dependsOn=v.split(",").map(function(id){return id.trim();}).filter(function(id,i,arr){return id && arr.indexOf(id)===i;});
+  },"change",false);
+  bindField("dExternalDependencies",function(a,v){ a.externalDependencies=v; });
+  bindField("dTierSel",function(a,v){ a.tier=parseInt(v,10); },"change",true);
+  bindField("dInclude",function(a,v,el){ a.on=el.checked; },"change",true);
+  bindField("dReady",function(a,v,el){ a.ready=el.checked; },"change",false);
+
+  function dateValidation(a,status){
+    var s=parseDate(a.startDate), e=parseDate(a.endDate), tracked=status==="completed"||status==="in progress"||status==="scheduled";
+    if(tracked&&!s)return "A start date is required for "+status+" tasks; the end date is calculated automatically.";
+    if(status==="on hold"&&s)return "On-hold tasks should not have a start date; clear it or change the task to scheduled.";
+    if(!tracked&&a.ready&&status!=="on hold")return "A ready task outside active delivery must have on-hold status.";
+    if(s&&!e)return "The end date could not be calculated from effort and allocation.";
+    if(s&&e&&e<s)return "End date cannot be before start date.";
+    if(status==="in progress"&&s>TODAY)return "An in-progress task must start today or earlier.";
+    if((status==="scheduled"||status==="on hold")&&s&&s<TODAY)return "A "+status+" task must start today or later.";
+    if(status==="completed"&&e>TODAY)return "A completed task cannot end in the future.";
+    return "";
+  }
+  function bindDate(elId,key){
+    document.getElementById(elId).addEventListener("change",function(){
+      if(!draftAct)return; draftAct[key]=this.value||null; document.getElementById("dDateError").textContent="";
+      markDraftDirty(); refreshDraftDerived();
+    });
+  }
+  bindDate("dStartDate","startDate");
+  document.getElementById("dStatus").addEventListener("change",function(){
+    if(!draftAct)return; draftAct.status=this.value; document.getElementById("dDateError").textContent="";
+    markDraftDirty(); refreshDraftDerived();
+  });
+
+  document.getElementById("dIdInput").addEventListener("input",function(){
+    if(!draftAct)return; draftAct.id=this.value.trim();
+    var err=document.getElementById("dIdError");
+    err.textContent=!draftAct.id?"Task ID cannot be empty.":(draftAct.id!==curId&&actById(draftAct.id)?"That task ID already exists.":"");
+    markDraftDirty(); refreshDraftDerived();
+  });
+
+  document.getElementById("dSave").addEventListener("click",function(){
+    if(!curId||!draftAct||!draftDirty)return;
+    var next=draftAct.id.trim(), old=curId, idError=document.getElementById("dIdError");
+    if(!next){ idError.textContent="Task ID cannot be empty."; return; }
+    if(next!==old&&actById(next)){ idError.textContent="That task ID already exists."; return; }
+    if(draftAct.dependsOn.indexOf(next)!==-1){ idError.textContent="A task cannot depend on itself."; return; }
+    var dateError=dateValidation(draftAct,draftAct.status);
+    if(dateError){ document.getElementById("dDateError").textContent=dateError; return; }
+    var index=state.acts.indexOf(actById(old));
+    if(next!==old)state.acts.forEach(function(item){ item.dependsOn=item.dependsOn.map(function(id){return id===old?next:id;}); });
+    draftAct.id=next; state.acts[index]=normAct(JSON.parse(JSON.stringify(draftAct)));
+    curId=next; save(); render(); openDrawer(next); setDraftState("Saved as browser default","saved");
+  });
+
+  // ---------- controls ----------
+  function openModal(el){ el.hidden=false; }
+  function closeModal(el){ el.hidden=true; }
+
+  var resetDialog=document.getElementById("resetDialog");
+  window.planrOpenReset=function(){ openModal(resetDialog); };
+  window.planrCloseReset=function(){ closeModal(resetDialog); };
+  window.planrConfirmReset=function(){
+    try{ localStorage.removeItem(STORE); }catch(e){}
+    state=defaults(); syncControls(); render(); closeDrawer(); closeModal(resetDialog);
+  };
+
+  var exportDialog=document.getElementById("exportDialog"), exportText=document.getElementById("exportText");
+  window.planrOpenExport=function(){
+    exportText.value=JSON.stringify(exportData(),null,2); openModal(exportDialog);
+  };
+  window.planrCloseExport=function(){ closeModal(exportDialog); };
+  window.planrDownload=function(){
+    var blob=new Blob([exportText.value],{type:"application/json"});
+    var url=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=url; a.download="planr-activities.json"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  };
+
+  var importDialog=document.getElementById("importDialog"), importFile=document.getElementById("importFile");
+  var importText=document.getElementById("importText"), importMsg=document.getElementById("importMsg");
+  window.planrOpenImport=function(){ importMsg.textContent=""; openModal(importDialog); };
+  window.planrCloseImport=function(){ closeModal(importDialog); };
+  window.planrReadImport=function(input){
+    var f=input.files[0]; if(!f)return; var r=new FileReader();
+    r.onload=function(){ importText.value=r.result; importMsg.textContent=""; };
+    r.onerror=function(){ importMsg.textContent="The selected file could not be read."; };
+    r.readAsText(f);
+  };
+  window.planrApplyImport=function(){
+    try{
+      importData(JSON.parse(importText.value)); save(); syncControls(); render(); closeDrawer();
+      closeModal(importDialog); importFile.value=""; importText.value="";
+    }catch(e){ importMsg.textContent="Invalid PLANR JSON: expected a top-level activities array."; }
+  };
+  document.getElementById("exportBtn").addEventListener("click",window.planrOpenExport);
+  document.getElementById("importBtn").addEventListener("click",window.planrOpenImport);
+  document.getElementById("resetBtn").addEventListener("click",window.planrOpenReset);
+  document.getElementById("exportClose").addEventListener("click",window.planrCloseExport);
+  document.getElementById("downloadBtn").addEventListener("click",window.planrDownload);
+  document.getElementById("importClose").addEventListener("click",window.planrCloseImport);
+  document.getElementById("importApply").addEventListener("click",window.planrApplyImport);
+  document.getElementById("importFile").addEventListener("change",function(){window.planrReadImport(this);});
+  document.getElementById("resetClose").addEventListener("click",window.planrCloseReset);
+  document.getElementById("resetConfirm").addEventListener("click",window.planrConfirmReset);
+  function syncControls(){ document.getElementById("todayVal").textContent=TODAY.getDate()+" "+MON[TODAY.getMonth()]+" "+TODAY.getFullYear(); document.getElementById("maintPctNote").textContent=MAINT_PCT+"%"; }
+
+  // ---------- encrypted-data gate ----------
+  // The published HTML ships NO roadmap data; everything comes from the encrypted
+  // planr-activities.enc, unlocked with the shared passphrase. The board is the
+  // source of truth, so published data is authoritative and overrides local edits.
+  var b64ToBytes=function(s){ return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0);}); };
+  async function decryptPayload(pkg, pass){
+    var enc=new TextEncoder(), dec=new TextDecoder();
+    var keyMat=await crypto.subtle.importKey("raw", enc.encode(pass), "PBKDF2", false, ["deriveKey"]);
+    var key=await crypto.subtle.deriveKey(
+      {name:"PBKDF2", salt:b64ToBytes(pkg.salt), iterations:pkg.iterations, hash:"SHA-256"},
+      keyMat, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+    var pt=await crypto.subtle.decrypt({name:"AES-GCM", iv:b64ToBytes(pkg.iv)}, key, b64ToBytes(pkg.ct));
+    return JSON.parse(dec.decode(pt));
+  }
+  function buildGate(){
+    var o=document.createElement("div"); o.id="planrGate";
+    o.setAttribute("style","position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#0b1020;color:#e7ecf5;font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif");
+    o.innerHTML='<form id="planrGateForm" style="width:min(360px,86vw);background:#141b30;border:1px solid #2a3350;border-radius:14px;padding:26px 24px;box-shadow:0 20px 60px rgba(0,0,0,.45)">'
+      +'<div style="font-weight:700;font-size:17px;margin-bottom:4px">PLANR Roadmap</div>'
+      +'<div style="opacity:.7;font-size:13px;margin-bottom:16px">Enter the shared password to view.</div>'
+      +'<input id="planrGatePass" type="password" autocomplete="current-password" autofocus placeholder="Password" '
+      +'style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;border:1px solid #33406a;background:#0e1526;color:#fff;font-size:15px">'
+      +'<div id="planrGateErr" style="color:#ff8a8a;font-size:13px;min-height:18px;margin:8px 2px 0"></div>'
+      +'<button type="submit" style="width:100%;margin-top:10px;padding:10px;border:0;border-radius:9px;background:#3b82f6;color:#fff;font-size:15px;font-weight:600;cursor:pointer">Unlock</button>'
+      +'</form>';
+    document.body.appendChild(o); return o;
+  }
+  function askPassword(gate, errMsg){
+    return new Promise(function(resolve){
+      var form=gate.querySelector("#planrGateForm"), pass=gate.querySelector("#planrGatePass");
+      gate.querySelector("#planrGateErr").textContent=errMsg||"";
+      pass.value=""; pass.focus();
+      form.onsubmit=function(e){ e.preventDefault(); resolve(pass.value); };
+    });
+  }
+  async function loadPublished(){
+    var res=await fetch("planr-activities.enc",{cache:"no-store"});
+    if(!res.ok) throw new Error("no-data");
+    var pkg=await res.json();
+    var gate=buildGate(), err="";
+    var cached=null; try{ cached=sessionStorage.getItem("planr-pass"); }catch(e){}
+    for(;;){
+      var pass = cached!=null ? cached : await askPassword(gate, err);
+      cached=null;
+      try{
+        var data=await decryptPayload(pkg, pass);
+        try{ sessionStorage.setItem("planr-pass", pass); }catch(e){}
+        importData(data); save(); syncControls(); render();
+        var note=document.getElementById("sourceNote");
+        if(note){ note.setAttribute("data-source","board");
+          if(data.generatedAt) note.setAttribute("title","Synced from GitHub board "+new Date(data.generatedAt).toLocaleString()); }
+        gate.remove(); return;
+      }catch(e){ try{ sessionStorage.removeItem("planr-pass"); }catch(_){}
+        err="Incorrect password — try again."; }
+    }
+  }
+
+  // ---------- go ----------
+  syncControls();
+  if(location.protocol==="http:" || location.protocol==="https:"){
+    render();                       // empty shell behind the gate
+    loadPublished().catch(function(e){
+      console.warn("Could not load published data:", e);
+      var g=document.getElementById("planrGate");
+      if(g) g.querySelector("#planrGateErr").textContent="Roadmap data is unavailable right now.";
+    });
+  } else {
+    // file:// (local): no fetch/crypto restrictions handling — use the Import control.
+    load(); render();
+  }
+})();
+</script>
+
+
+</body>
+</html>
