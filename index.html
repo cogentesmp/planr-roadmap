@@ -160,6 +160,7 @@
   .status-pill.scheduled{background:var(--scheduled)}.status-pill.in-progress{background:var(--progress)}
   .status-pill.completed{background:var(--completed)}
   .status-pill.on-hold{background:var(--hold)}.status-pill.pending-review{background:var(--pending-review)}
+  .nodate{font-family:var(--mono);font-size:9px;color:var(--text-faint);opacity:.75;padding:2px 4px;font-style:italic;white-space:nowrap;}
   .bar .blabel{overflow:hidden;text-overflow:ellipsis;pointer-events:none;}
 
   /* load strip */
@@ -277,7 +278,7 @@
     <span class="chip"><span class="sw" style="background:var(--hold)"></span>On hold</span>
     <span class="chip"><span class="sw" style="background:var(--pending-review)"></span>Pending review</span>
     <span class="chip"><span class="sw" style="background:repeating-linear-gradient(135deg,#8fa1b0 0 4px,#d7dde2 4px 8px)"></span>Not ready</span>
-    <span class="hint">Past weeks are shaded · dashed bars are projected · undated work follows tier and readiness priority</span>
+    <span class="hint">Past weeks are shaded · only <b>completed</b> and <b>scheduled</b> tasks are placed, using each issue's Start/Target dates</span>
     <span class="hint"><b>Allocation:</b> 100% means full delivery-team effort after reserving <span id="maintPctNote">10%</span> for maintenance.</span>
   </div>
 
@@ -286,7 +287,7 @@
   </div>
 
   <div class="foot" id="sourceNote">
-    The tracker starts on <b>Monday 6 July 2026</b>. Completed, in-progress and scheduled tasks require dates aligned with today. Undated work respects internal dependencies, then runs ready on-hold Tier 1, ready on-hold Tier 2, not-ready Tier 1, not-ready Tier 2, ready on-hold Tier 3 and not-ready Tier 3. The embedded task data is used when no sibling <b>planr-activities.json</b> is available.
+    The tracker starts on <b>Monday 6 July 2026</b>. Timeline placement comes straight from the GitHub issues: only <b>completed</b> and <b>scheduled</b> tasks are drawn, positioned by their <b>Start date</b> and <b>Target date</b> Feature fields. On-hold, in-progress and pending-review tasks are listed without a bar. Status follows the board columns — Done → completed, Todo → scheduled, Blocked → on hold, In Progress → in progress. Data is synced from the board and refreshed here on load.
   </div>
 </div>
 
@@ -428,6 +429,7 @@
       externalDependencies:(o.externalDependencies!=null)?o.externalDependencies:legacyExternalDependency(o.dependency!=null?o.dependency:base.dependency),
       startDate:(o.startDate!=null)?o.startDate:(base.startDate||null),
       endDate:(o.endDate!=null)?o.endDate:(base.endDate||null),
+      _target:(o.endDate!=null&&o.endDate!=="")?o.endDate:null,   // explicit Target date from the issue
       allocation:(typeof o.allocation==="number")?o.allocation:((typeof base.allocation==="number")?base.allocation:100),
       ready:(typeof o.ready==="boolean")?o.ready:(base.ready!==false),
       status:normalizeStatus((o.status!=null)?o.status:(base.status||"pending review")),
@@ -467,35 +469,23 @@
   function isoDate(d){ return d?d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"):null; }
   function dateWeek(d){ return (d-WEEK0)/(7*24*60*60*1000); }
   function addWorkingDays(start,days){ var d=new Date(start), left=Math.max(1,Math.ceil(days))-1; while(left>0){ d.setDate(d.getDate()+1); if(d.getDay()!==0&&d.getDay()!==6)left--; } return d; }
-  function syncEndDate(a){ var s=parseDate(a.startDate); a.endDate=s?isoDate(addWorkingDays(s,allocatedDays(a))):null; }
+  function syncEndDate(a){ if(a._target){ a.endDate=a._target; return; } var s=parseDate(a.startDate); a.endDate=s?isoDate(addWorkingDays(s,allocatedDays(a))):null; }
   function taskEndWeek(a){ return a._ee!=null?a._ee:(a._es!=null?a._es+widthWk(a):null); }
+  // Timeline placement is now driven ENTIRELY by the issue's Start/Target dates.
+  // Only COMPLETED and SCHEDULED tasks are placed; everything else (on hold,
+  // in progress, pending review) is listed without a bar. No projection/guessing.
   function computeEff(){
-    var all={}, cursor=Math.max(0,dateWeek(TODAY));
     state.acts.forEach(function(a){
-      all[a.id]=a; a._es=null; a._ee=null; a._blocked=false; a._projected=false; a._conflict=false; a._overdue=false;
-      if(a.on===false)return;
+      a._es=null; a._ee=null; a._blocked=false; a._projected=false; a._conflict=false; a._overdue=false; a._nodate=false;
+      if(a.on===false) return;
+      if(a.status!=="completed" && a.status!=="scheduled") return;   // others: no timeline bar
       syncEndDate(a);
       var s=parseDate(a.startDate), e=parseDate(a.endDate);
-      if(s){ a._es=dateWeek(s); a._ee=dateWeek(e||addWorkingDays(s,a.days))+1/7; cursor=Math.max(cursor,a._ee); if(dateValidation(a,a.status))a._conflict=true; if(a.status==="in progress"&&e<TODAY)a._overdue=true; }
+      if(!s){ a._nodate=true; return; }                              // placed status but missing Start date
+      a._es=dateWeek(s);
+      a._ee=dateWeek(e||addWorkingDays(s,a.days))+1/7;
+      if(a.status==="scheduled" && e && e<TODAY) a._overdue=true;    // scheduled but Target already passed
     });
-    // Explicit dates stay where the user put them, but dependency violations are flagged.
-    state.acts.forEach(function(a){
-      if(a.on===false || a._es==null)return;
-      taskDependencies(a).forEach(function(id){ var dep=all[id], de=dep&&taskEndWeek(dep); if(!dep||dep.on===false||de==null||a._es<de) a._conflict=true; });
-    });
-    var pending=state.acts.filter(function(a){return a.on!==false&&a._es==null;}).sort(byNum), placed={};
-    state.acts.forEach(function(a){if(a._es!=null)placed[a.id]=true;});
-    while(pending.length){
-      var invalid=pending.filter(function(a){
-        return taskDependencies(a).some(function(d){ return !all[d] || all[d].on===false || all[d]._blocked; });
-      });
-      if(invalid.length){ invalid.forEach(function(a){ a._blocked=true; pending.splice(pending.indexOf(a),1); }); continue; }
-      var eligible=pending.filter(function(a){return taskDependencies(a).every(function(d){return placed[d];});}).sort(byProjectionPriority);
-      if(!eligible.length){ pending.forEach(function(a){a._blocked=true;}); break; }
-      var a=eligible[0];
-      var depEnd=cursor; taskDependencies(a).forEach(function(id){depEnd=Math.max(depEnd,taskEndWeek(all[id])||0);});
-      a._es=depEnd; a._ee=a._es+widthWk(a); a._projected=true; cursor=a._ee; placed[a.id]=true; pending.splice(pending.indexOf(a),1);
-    }
   }
   function maxEnd(){ var m=0; state.acts.forEach(function(a){ if(a.on!==false&&a._es!=null) m=Math.max(m,taskEndWeek(a)); }); return m; }
 
@@ -547,9 +537,10 @@
 
   function actRow(a){
     var off=(a.on===false);
-    var sc=statusClass(a.status), blocked=a._blocked;
-    var bar = (off||blocked) ? '' :
-      '<div class="bar '+sc+(a.ready?'':' not-ready')+(a._projected?' projected':'')+(a._conflict?' conflict':'')+(a._overdue?' overdue':'')+'" data-id="'+a.id+'" style="left:'+(a._es*46)+'px;width:'+((taskEndWeek(a)-a._es)*46)+'px">'+
+    var sc=statusClass(a.status);
+    var bar = (off||a._es==null) ?
+      (a._nodate ? '<span class="nodate" title="Set a Start date (and Target date) on the issue to place this on the timeline">no dates set</span>' : '') :
+      '<div class="bar '+sc+(a.ready?'':' not-ready')+(a._overdue?' overdue':'')+'" data-id="'+a.id+'" style="left:'+(a._es*46)+'px;width:'+((taskEndWeek(a)-a._es)*46)+'px">'+
       '<span class="blabel">'+a.id+' · '+a.days+'d @ '+allocationOf(a)+'%</span></div>';
     return '<div class="row arow'+(off?' off':'')+'" data-id="'+a.id+'">'+
       '<div class="label">'+

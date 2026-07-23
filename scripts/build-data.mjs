@@ -9,7 +9,8 @@ const TOKEN = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
 if (!TOKEN) { console.error("Missing GH_TOKEN/GITHUB_TOKEN"); process.exit(1); }
 const PROJECT_ID = "PVT_kwDOBTIPpc4AzoBZ";        // cogentesmp PLANR project
 const TASK_RE = /^(T\d+\.\d+[a-z]?)\s*[—-]\s*(.+)$/; // "T1.1a — Title"
-const STATUS_MAP = { "Blocked":"on hold", "Todo":"scheduled", "In Progress":"in progress", "Done":"done" };
+// board column  ->  app status label
+const STATUS_MAP = { "Blocked":"on hold", "Todo":"scheduled", "In Progress":"in progress", "Done":"completed" };
 
 async function gql(query, variables) {
   const r = await fetch("https://api.github.com/graphql", {
@@ -40,6 +41,9 @@ const Q = `query($id:ID!,$cursor:String){ node(id:$id){ ... on ProjectV2 {
       content{ ... on Issue {
         number title body url state
         labels(first:20){ nodes{ name } }
+        issueFieldValues(first:20){ nodes{
+          ... on IssueFieldDateValue { value field{ ... on IssueFieldDate { name } } }
+        } }
       } }
     } } } } }`;
 
@@ -86,7 +90,14 @@ for (const it of items) {
   const tierLabel = (c.labels.nodes.find(l => /^Tier\s+\d/i.test(l.name)) || {}).name;
   const boardStatus = it.fieldValueByName?.name || null;
   const pb = planrBlock(body);
-  const status = STATUS_MAP[boardStatus] || (c.state === "CLOSED" ? "done" : "on hold");
+  const status = STATUS_MAP[boardStatus] || (c.state === "CLOSED" ? "completed" : "on hold");
+  // Native Feature date fields drive the timeline. Fall back to the planr block's startDate.
+  const dates = {};
+  for (const fv of (c.issueFieldValues?.nodes || [])) {
+    if (fv && fv.field && fv.field.name && fv.value) dates[fv.field.name] = fv.value.slice(0, 10);
+  }
+  const startDate = dates["Start date"] || pb.startDate || null;
+  const endDate = dates["Target date"] || null;
   activities.push({
     id,
     tier: tierLabel ? Number(tierLabel.replace(/\D/g, "")) : null,
@@ -99,7 +110,8 @@ for (const it of items) {
     include: pb.include ?? true,
     dependsOn: pb.dependsOn ?? [],
     externalDependencies: section(body, "External dependencies").replace(/^none$/i, ""),
-    startDate: pb.startDate ?? null,
+    startDate,
+    endDate,
     allocation: pb.allocation ?? 100,
     ready: boardStatus === "Todo" || boardStatus === "In Progress",
     status,
