@@ -115,10 +115,11 @@ for (const a of activities) console.log(`  ${a.id.padEnd(6)} #${a._issue}  ${a.s
 
 // ---- optional encryption (AES-GCM, PBKDF2) matching the in-page decryptor ----
 if (process.env.PLANR_PASSPHRASE) {
+  const passphrase = process.env.PLANR_PASSPHRASE.trim();   // tolerate stray newline/space in the secret
   const enc = new TextEncoder();
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const keyMat = await crypto.subtle.importKey("raw", enc.encode(process.env.PLANR_PASSPHRASE), "PBKDF2", false, ["deriveKey"]);
+  const keyMat = await crypto.subtle.importKey("raw", enc.encode(passphrase), "PBKDF2", false, ["deriveKey"]);
   const key = await crypto.subtle.deriveKey(
     { name:"PBKDF2", salt, iterations:250000, hash:"SHA-256" },
     keyMat, { name:"AES-GCM", length:256 }, false, ["encrypt"]);

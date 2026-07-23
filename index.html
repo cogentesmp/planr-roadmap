@@ -870,6 +870,7 @@
   var b64ToBytes=function(s){ return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0);}); };
   async function decryptPayload(pkg, pass){
     var enc=new TextEncoder(), dec=new TextDecoder();
+    pass=(pass||"").trim();   // match the build-side trim so whitespace never matters
     var keyMat=await crypto.subtle.importKey("raw", enc.encode(pass), "PBKDF2", false, ["deriveKey"]);
     var key=await crypto.subtle.deriveKey(
       {name:"PBKDF2", salt:b64ToBytes(pkg.salt), iterations:pkg.iterations, hash:"SHA-256"},
