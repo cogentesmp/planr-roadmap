@@ -161,6 +161,10 @@
   .status-pill.completed{background:var(--completed)}
   .status-pill.on-hold{background:var(--hold)}.status-pill.pending-review{background:var(--pending-review)}
   .nodate{font-family:var(--mono);font-size:9px;color:var(--text-faint);opacity:.75;padding:2px 4px;font-style:italic;white-space:nowrap;}
+  .rovalue{font-size:13px;color:var(--text);padding:1px 0;}
+  .rotext{font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.5;}
+  .drawer .issue-link{font-weight:600;}
+  .ro-note{font-size:11px;color:var(--text-faint);margin-top:14px;border-top:1px solid var(--line,rgba(0,0,0,.1));padding-top:10px;}
   .bar .blabel{overflow:hidden;text-overflow:ellipsis;pointer-events:none;}
 
   /* load strip */
@@ -253,6 +257,7 @@
     <div class="controls">
       <span class="ctl">Today <span class="val" id="todayVal"></span></span>
       <span class="ctl">Synced <span class="val" id="lastSynced">—</span></span>
+      <button class="btn" id="refreshBtn" title="Re-fetch the latest published data from the board">Refresh</button>
     </div>
   </div>
 
@@ -297,38 +302,27 @@
     <h2 id="dTitle">Marketplace: backend prototype</h2>
   </div>
   <div class="dbody">
-    <div class="field"><label>Task ID</label><input type="text" id="dIdInput" autocomplete="off"><div class="validation" id="dIdError"></div></div>
-    <div class="field"><label>Title</label><input type="text" id="dTitleInput"></div>
-    <div class="field"><label>Description</label><textarea id="dDescription"></textarea></div>
-    <div class="field"><label>GitHub issue</label><input type="url" id="dGithubIssue" placeholder="https://github.com/org/repo/issues/123"><a class="issue-link" id="dGithubIssueLink" href="#" target="_blank" rel="noopener noreferrer" hidden>Open GitHub issue ↗</a></div>
     <div class="frow">
-      <div class="field"><label>Effort (team-days)</label><input type="number" id="dDays" min="1" step="1"></div>
-      <div class="field"><label>Effort (calculated)</label><select id="dEffort" disabled><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option></select></div>
-    </div>
-    <div class="field"><label>Allocation (%)</label><input type="number" id="dAllocation" min="1" max="100" step="5"></div>
-    <div class="frow">
-      <div class="field"><label>Start date</label><input type="date" id="dStartDate"></div>
-      <div class="field"><label>End date (calculated)</label><input type="date" id="dEndDate" readonly></div>
-    </div>
-    <div class="validation" id="dDateError"></div>
-    <div class="frow"><div class="field"><label>Status</label><select id="dStatus"><option>in progress</option><option>scheduled</option><option>completed</option><option>pending review</option><option>on hold</option></select></div><div class="field"><label>Ready</label><span class="check"><input type="checkbox" id="dReady"> Ready to start</span></div></div>
-    <div class="field"><label>Depends on (task IDs, comma-separated)</label><input type="text" id="dDependsOn" placeholder="e.g. T1.1a, T2.4"></div>
-    <div class="field"><label>External dependencies</label><textarea id="dExternalDependencies"></textarea></div>
-    <div class="field"><label>Completion criteria</label><textarea id="dCompletionCriteria"></textarea></div>
-    <div class="field"><label>Risk</label><textarea id="dRisk"></textarea></div>
-    <div class="frow">
-      <div class="field"><label>Tier</label>
-        <select id="dTierSel"><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option></select>
-      </div>
-      <div class="field"><label>Included</label><span class="check"><input type="checkbox" id="dInclude"> Include in plan</span></div>
+      <div class="field"><label>Status</label><div class="rovalue"><span class="status-pill" id="dStatus">—</span></div></div>
+      <div class="field"><label>GitHub issue</label><div class="rovalue"><a class="issue-link" id="dGithubIssueLink" href="#" target="_blank" rel="noopener noreferrer">—</a></div></div>
     </div>
     <div class="frow">
-      <div class="field"><label>Start (week #)</label><input type="number" id="dStart" min="1" max="60" step="0.25" readonly=""></div>
-      <div class="field"><label>Span (calendar weeks)</label><input type="number" id="dDur" readonly="" tabindex="-1"></div>
+      <div class="field"><label>Effort</label><div class="rovalue" id="dEffort">—</div></div>
+      <div class="field"><label>Allocation</label><div class="rovalue" id="dAllocation">—</div></div>
     </div>
-    <div class="field"><label>Window</label><div class="note" id="dWindow" style="border-left-color:var(--accent)">Excluded from the plan — tick its box to include it.</div></div>
+    <div class="frow">
+      <div class="field"><label>Start date</label><div class="rovalue" id="dStartDate">—</div></div>
+      <div class="field"><label>Target date</label><div class="rovalue" id="dEndDate">—</div></div>
+    </div>
+    <div class="field"><label>Timeline</label><div class="note" id="dWindow" style="border-left-color:var(--accent)">—</div></div>
+    <div class="field"><label>Depends on</label><div class="rovalue" id="dDependsOn">—</div></div>
+    <div class="field"><label>Description</label><div class="rotext" id="dDescription">—</div></div>
+    <div class="field"><label>Completion criteria</label><div class="rotext" id="dCompletionCriteria">—</div></div>
+    <div class="field"><label>Risk</label><div class="rotext" id="dRisk">—</div></div>
+    <div class="field"><label>External dependencies</label><div class="rotext" id="dExternalDependencies">—</div></div>
+    <p class="ro-note">Read-only view. Edit this task on its <span>GitHub issue</span>; changes appear here after the next sync.</p>
   </div>
-  <div class="dactions"><span class="save-state" id="dSaveState">No unsaved changes</span><button class="btn" id="dCancel">Cancel</button><button class="btn primary" id="dSave" disabled>Save changes</button></div>
+  <div class="dactions"><button class="btn primary" id="dDone">Close</button></div>
 </aside>
 
 <div class="tip" id="tip" style="left: 365px; top: 394px;"><b>T1.1b</b> NBAS v2.1 Docker standalone code<br>S · 2 team-days · 0.4 wk<br>6 Jul → 6 Jul</div>
@@ -527,7 +521,6 @@
       '<span class="blabel">'+a.id+' · '+a.days+'d @ '+allocationOf(a)+'%</span></div>';
     return '<div class="row arow'+(off?' off':'')+'" data-id="'+a.id+'">'+
       '<div class="label">'+
-        '<input type="checkbox" class="inc" data-id="'+a.id+'"'+(off?'':' checked')+' title="Include in plan" />'+
         '<span class="id">'+a.id+'</span>'+
         '<span class="ttl" title="'+esc(a.title)+'">'+esc(a.title)+'</span>'+
         '<span class="status-pill '+sc+'">'+esc(a.status)+'</span></div>'+
@@ -556,15 +549,8 @@
     grid.innerHTML=html;
 
     Array.prototype.forEach.call(grid.querySelectorAll(".bar"),function(el){ wireBar(el); });
-    Array.prototype.forEach.call(grid.querySelectorAll(".inc"),function(cb){
-      cb.addEventListener("change",function(){
-        var desired=this.checked, id=this.getAttribute("data-id"); this.checked=!desired;
-        openDrawer(id); draftAct.on=desired; document.getElementById("dInclude").checked=desired;
-        markDraftDirty(); refreshDraftDerived();
-      });
-    });
     Array.prototype.forEach.call(grid.querySelectorAll(".arow .label"),function(lb){
-      lb.addEventListener("click",function(e){ if(e.target.closest(".inc"))return; openDrawer(lb.parentNode.getAttribute("data-id")); });
+      lb.addEventListener("click",function(){ openDrawer(lb.parentNode.getAttribute("data-id")); });
     });
     renderCap();
   }
@@ -639,106 +625,58 @@
   function hideTip(){ tip.classList.remove("show"); }
 
   // ---------- drawer ----------
-  var drawer=document.getElementById("drawer"), curId=null, draftAct=null, draftDirty=false;
-  function setDraftState(message,kind){
-    var el=document.getElementById("dSaveState"); el.textContent=message; el.className="save-state"+(kind?" "+kind:"");
-    document.getElementById("dSave").disabled=!draftDirty;
-  }
-  function markDraftDirty(){ draftDirty=true; setDraftState("Unsaved changes","dirty"); }
+  var drawer=document.getElementById("drawer"), curId=null;
   function openDrawer(id){
-    curId=id; var source=actById(id); if(!source)return;
-    var a=normAct(JSON.parse(JSON.stringify(source))); draftAct=a; draftDirty=false;
+    curId=id; var a=actById(id); if(!a)return;
     drawer.classList.add("open"); drawer.setAttribute("aria-hidden","false");
     var dt=document.getElementById("dTier"); dt.className="dtier t"+a.tier; dt.textContent="Tier "+a.tier;
     document.getElementById("dId").textContent=a.id;
     document.getElementById("dTitle").textContent=a.title;
-    document.getElementById("dIdInput").value=a.id;
-    document.getElementById("dIdError").textContent="";
-    document.getElementById("dTitleInput").value=a.title;
-    document.getElementById("dDays").value=a.days;
-    document.getElementById("dEffort").value=a.effort;
-    document.getElementById("dAllocation").value=allocationOf(a);
-    document.getElementById("dTierSel").value=a.tier;
-    document.getElementById("dInclude").checked=a.on!==false;
-    var ds=document.getElementById("dStart");
-    ds.value=(a.on===false)?"—":Math.round((a._es+1)*100)/100; ds.readOnly=true;
-    document.getElementById("dDur").value=a._es==null?"—":Math.round((taskEndWeek(a)-a._es)*100)/100;
-    document.getElementById("dStartDate").value=a.startDate||"";
-    document.getElementById("dEndDate").value=a.endDate||"";
-    var startInput=document.getElementById("dStartDate"), todayIso=isoDate(TODAY);
-    startInput.min=(a.status==="scheduled"||a.status==="on hold")?todayIso:"";
-    startInput.max=(a.status==="in progress"||a.status==="completed")?todayIso:"";
-    document.getElementById("dDateError").textContent="";
-    document.getElementById("dDescription").value=a.description;
-    document.getElementById("dCompletionCriteria").value=a.completionCriteria;
-    document.getElementById("dGithubIssue").value=a.githubIssue;
-    updateGithubLink(a.githubIssue);
-    document.getElementById("dRisk").value=a.risk;
-    document.getElementById("dStatus").value=a.status;
-    document.getElementById("dReady").checked=a.ready;
-    document.getElementById("dDependsOn").value=a.dependsOn.join(", ");
-    document.getElementById("dExternalDependencies").value=a.externalDependencies;
-    var locked=a.status==="completed";
-    document.getElementById("dDays").disabled=locked;
-    document.getElementById("dEffort").disabled=true;
-    document.getElementById("dAllocation").disabled=locked;
-    document.getElementById("dStatus").disabled=locked;
-    updWindow(a);
-    setDraftState("No unsaved changes","");
+    var sp=document.getElementById("dStatus"); sp.textContent=a.status; sp.className="status-pill "+statusClass(a.status);
+    document.getElementById("dEffort").textContent=a.days+" team-days ("+effortForDays(a.days)+")";
+    document.getElementById("dAllocation").textContent=allocationOf(a)+"%";
+    document.getElementById("dStartDate").textContent=a.startDate?fmtCalendarDate(parseDate(a.startDate)):"—";
+    document.getElementById("dEndDate").textContent=a.endDate?fmtCalendarDate(parseDate(a.endDate)):"—";
+    document.getElementById("dDependsOn").textContent=(a.dependsOn&&a.dependsOn.length)?a.dependsOn.join(", "):"—";
+    document.getElementById("dDescription").textContent=a.description||"—";
+    document.getElementById("dCompletionCriteria").textContent=a.completionCriteria||"—";
+    document.getElementById("dRisk").textContent=a.risk||"—";
+    document.getElementById("dExternalDependencies").textContent=a.externalDependencies||"—";
+    var win=document.getElementById("dWindow");
+    if(a.status==="scheduled"||a.status==="completed"){
+      win.textContent=(a._es!=null)?(taskStartLabel(a)+" → "+taskEndLabel(a)):("Marked "+a.status+" but no Start date is set on the issue.");
+    }else{ win.textContent="Not on the timeline — only completed and scheduled tasks are placed."; }
+    var link=document.getElementById("dGithubIssueLink"), url=String(a.githubIssue||"").trim();
+    var valid=/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/issues\/\d+/.test(url);
+    var mm=url.match(/\/issues\/(\d+)/);
+    link.href=valid?url:"#"; link.textContent=valid?("Open GitHub issue #"+(mm?mm[1]:"")+" ↗"):"—"; link.style.pointerEvents=valid?"":"none";
   }
-  function updWindow(a){
-    var wk=widthWk(a);
-    if(a.on===false){ document.getElementById("dWindow").textContent="Excluded from the plan — tick its box to include it."; return; }
-    if(a._blocked){ document.getElementById("dWindow").textContent="Blocked: one or more prerequisite tasks ("+(a.dependsOn.join(", ")||"unknown")+") are missing, excluded, blocked, or part of a dependency cycle."; return; }
-    if(a._conflict){ document.getElementById("dWindow").textContent="Date conflict: this task begins before one or more internal dependencies finish."; return; }
-    if(a._overdue){ document.getElementById("dWindow").textContent="Overdue: calculated end date was "+taskEndLabel(a)+". Update status, effort, allocation, or start date."; return; }
-    document.getElementById("dWindow").textContent=taskStartLabel(a)+" → "+taskEndLabel(a)+"  ·  "+(a._projected?"Projected from dependencies and task order":"Explicit tracking dates");
-  }
-  function closeDrawer(){ drawer.classList.remove("open"); drawer.setAttribute("aria-hidden","true"); curId=null; draftAct=null; draftDirty=false; }
+  function closeDrawer(){ drawer.classList.remove("open"); drawer.setAttribute("aria-hidden","true"); curId=null; }
   document.getElementById("dclose").addEventListener("click",closeDrawer);
-  document.getElementById("dCancel").addEventListener("click",closeDrawer);
+  document.getElementById("dDone").addEventListener("click",closeDrawer);
   document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeDrawer(); });
 
-  function updateGithubLink(value){
-    var link=document.getElementById("dGithubIssueLink"), url=String(value||"").trim();
-    var valid=/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/issues\/\d+(?:[/?#].*)?$/.test(url);
-    link.hidden=!valid; link.href=valid?url:"#";
-    if(valid){ var match=url.match(/\/issues\/(\d+)/); link.textContent="Open GitHub issue #"+(match?match[1]:"")+" ↗"; }
+  // ---------- last-synced + on-demand refresh ----------
+  function setSynced(data){
+    if(!data||!data.generatedAt)return;
+    var when=new Date(data.generatedAt), el=document.getElementById("lastSynced");
+    if(el){ el.textContent=when.getDate()+" "+MON[when.getMonth()]+" "+String(when.getHours()).padStart(2,"0")+":"+String(when.getMinutes()).padStart(2,"0");
+      el.title="Latest published data, generated "+when.toLocaleString(); }
   }
-  function refreshDraftDerived(){
-    if(!draftAct)return;
-    draftAct.effort=effortForDays(draftAct.days); syncEndDate(draftAct);
-    document.getElementById("dEffort").value=draftAct.effort;
-    document.getElementById("dEndDate").value=draftAct.endDate||"";
-    updateGithubLink(draftAct.githubIssue);
-    document.getElementById("dTitle").textContent=draftAct.title;
-    document.getElementById("dId").textContent=draftAct.id;
-    var dt=document.getElementById("dTier"); dt.className="dtier t"+draftAct.tier; dt.textContent="Tier "+draftAct.tier;
-    var startInput=document.getElementById("dStartDate"), todayIso=isoDate(TODAY);
-    startInput.min=(draftAct.status==="scheduled"||draftAct.status==="on hold")?todayIso:"";
-    startInput.max=(draftAct.status==="in progress"||draftAct.status==="completed")?todayIso:"";
-    document.getElementById("dWindow").textContent="Unsaved changes — save to update the dashboard and calculated schedule.";
+  async function refreshData(btn){
+    var old=btn?btn.textContent:null;
+    try{
+      if(btn){ btn.disabled=true; btn.textContent="Refreshing…"; }
+      var res=await fetch("planr-activities.enc",{cache:"no-store"}); if(!res.ok) throw 0;
+      var pkg=await res.json(), pass=null; try{ pass=sessionStorage.getItem("planr-pass"); }catch(e){}
+      if(pass==null) throw 0;
+      var data=await decryptPayload(pkg, pass);
+      importData(data); save(); syncControls(); render(); setSynced(data);
+      if(curId) openDrawer(curId);
+      if(btn){ btn.textContent="Refreshed ✓"; setTimeout(function(){ btn.textContent=old; btn.disabled=false; },1200); }
+    }catch(e){ console.warn("refresh failed",e); if(btn){ btn.textContent="Refresh failed"; setTimeout(function(){ btn.textContent=old; btn.disabled=false; },1600); } }
   }
-  function bindField(elId,fn,eventName,refreshDerived){
-    document.getElementById(elId).addEventListener(eventName||"input",function(){
-      if(!draftAct)return; fn(draftAct,this.value,this); markDraftDirty();
-      if(refreshDerived) refreshDraftDerived();
-    });
-  }
-  bindField("dDays",function(a,v){ var n=parseFloat(v); if(!isNaN(n)&&n>0)a.days=Math.max(1,Math.round(n)); },"change",true);
-  bindField("dAllocation",function(a,v){ var n=parseFloat(v); if(!isNaN(n))a.allocation=Math.max(1,Math.min(100,n)); },"change",true);
-  bindField("dTitleInput",function(a,v){ a.title=v; },"input",true);
-  bindField("dDescription",function(a,v){ a.description=v; });
-  bindField("dCompletionCriteria",function(a,v){ a.completionCriteria=v; });
-  bindField("dGithubIssue",function(a,v){ a.githubIssue=v; },"input",true);
-  bindField("dRisk",function(a,v){ a.risk=v; });
-  bindField("dDependsOn",function(a,v){
-    a.dependsOn=v.split(",").map(function(id){return id.trim();}).filter(function(id,i,arr){return id && arr.indexOf(id)===i;});
-  },"change",false);
-  bindField("dExternalDependencies",function(a,v){ a.externalDependencies=v; });
-  bindField("dTierSel",function(a,v){ a.tier=parseInt(v,10); },"change",true);
-  bindField("dInclude",function(a,v,el){ a.on=el.checked; },"change",true);
-  bindField("dReady",function(a,v,el){ a.ready=el.checked; },"change",false);
+  (function(){ var rb=document.getElementById("refreshBtn"); if(rb) rb.addEventListener("click",function(){ refreshData(this); }); })();
 
   function dateValidation(a,status){
     var s=parseDate(a.startDate), e=parseDate(a.endDate), tracked=status==="completed"||status==="in progress"||status==="scheduled";
@@ -752,39 +690,6 @@
     if(status==="completed"&&e>TODAY)return "A completed task cannot end in the future.";
     return "";
   }
-  function bindDate(elId,key){
-    document.getElementById(elId).addEventListener("change",function(){
-      if(!draftAct)return; draftAct[key]=this.value||null; document.getElementById("dDateError").textContent="";
-      markDraftDirty(); refreshDraftDerived();
-    });
-  }
-  bindDate("dStartDate","startDate");
-  document.getElementById("dStatus").addEventListener("change",function(){
-    if(!draftAct)return; draftAct.status=this.value; document.getElementById("dDateError").textContent="";
-    markDraftDirty(); refreshDraftDerived();
-  });
-
-  document.getElementById("dIdInput").addEventListener("input",function(){
-    if(!draftAct)return; draftAct.id=this.value.trim();
-    var err=document.getElementById("dIdError");
-    err.textContent=!draftAct.id?"Task ID cannot be empty.":(draftAct.id!==curId&&actById(draftAct.id)?"That task ID already exists.":"");
-    markDraftDirty(); refreshDraftDerived();
-  });
-
-  document.getElementById("dSave").addEventListener("click",function(){
-    if(!curId||!draftAct||!draftDirty)return;
-    var next=draftAct.id.trim(), old=curId, idError=document.getElementById("dIdError");
-    if(!next){ idError.textContent="Task ID cannot be empty."; return; }
-    if(next!==old&&actById(next)){ idError.textContent="That task ID already exists."; return; }
-    if(draftAct.dependsOn.indexOf(next)!==-1){ idError.textContent="A task cannot depend on itself."; return; }
-    var dateError=dateValidation(draftAct,draftAct.status);
-    if(dateError){ document.getElementById("dDateError").textContent=dateError; return; }
-    var index=state.acts.indexOf(actById(old));
-    if(next!==old)state.acts.forEach(function(item){ item.dependsOn=item.dependsOn.map(function(id){return id===old?next:id;}); });
-    draftAct.id=next; state.acts[index]=normAct(JSON.parse(JSON.stringify(draftAct)));
-    curId=next; save(); render(); openDrawer(next); setDraftState("Saved as browser default","saved");
-  });
-
   // ---------- controls ----------
 
   function syncControls(){ document.getElementById("todayVal").textContent=TODAY.getDate()+" "+MON[TODAY.getMonth()]+" "+TODAY.getFullYear(); document.getElementById("maintPctNote").textContent=MAINT_PCT+"%"; }
