@@ -412,7 +412,10 @@
       status:normalizeStatus((o.status!=null)?o.status:(base.status||"pending review")),
       on:(o.on!==false && o.include!==false)
     };
-    syncEndDate(a); return a;
+    syncEndDate(a);
+    // A "scheduled" task whose Start date has already arrived is really in progress.
+    if(a.status==="scheduled" && a.startDate){ var _sd=parseDate(a.startDate); if(_sd && _sd<=TODAY) a.status="in progress"; }
+    return a;
   }
 
   // shape written to exported / uploaded JSON (full, human-editable)
@@ -455,13 +458,15 @@
     state.acts.forEach(function(a){
       a._es=null; a._ee=null; a._blocked=false; a._projected=false; a._conflict=false; a._overdue=false; a._nodate=false;
       if(a.on===false) return;
-      if(a.status!=="completed" && a.status!=="scheduled") return;   // others: no timeline bar
+      var placed=a.status==="completed"||a.status==="scheduled"||a.status==="in progress";
+      if(!placed) return;                                            // on hold / pending review: no bar
       syncEndDate(a);
       var s=parseDate(a.startDate), e=parseDate(a.endDate);
-      if(!s){ a._nodate=true; return; }                              // placed status but missing Start date
+      if(!s){ if(a.status!=="completed") a._nodate=true; return; }   // active status but missing Start date
       a._es=dateWeek(s);
       a._ee=dateWeek(e||addWorkingDays(s,a.days))+1/7;
-      if(a.status==="scheduled" && e && e<TODAY) a._overdue=true;    // scheduled but Target already passed
+      // overdue only when an EXPLICIT Target date has passed (not a computed end)
+      if((a.status==="scheduled"||a.status==="in progress") && a._target){ var _t=parseDate(a._target); if(_t && _t<TODAY) a._overdue=true; }
     });
   }
   function maxEnd(){ var m=0; state.acts.forEach(function(a){ if(a.on!==false&&a._es!=null) m=Math.max(m,taskEndWeek(a)); }); return m; }
@@ -515,10 +520,16 @@
   function actRow(a){
     var off=(a.on===false);
     var sc=statusClass(a.status);
-    var bar = (off||a._es==null) ?
-      (a._nodate ? '<span class="nodate" title="Set a Start date (and Target date) on the issue to place this on the timeline">no dates set</span>' : '') :
-      '<div class="bar '+sc+(a.ready?'':' not-ready')+(a._overdue?' overdue':'')+'" data-id="'+a.id+'" style="left:'+(a._es*46)+'px;width:'+((taskEndWeek(a)-a._es)*46)+'px">'+
-      '<span class="blabel">'+a.id+' · '+a.days+'d @ '+allocationOf(a)+'%</span></div>';
+    var bar='';
+    if(off||a._es==null){
+      bar = a._nodate ? '<span class="nodate" title="Set a Start date (and Target date) on the issue to place this on the timeline">no dates set</span>' : '';
+    } else {
+      var ee=taskEndWeek(a), L=Math.max(0,a._es), W=(ee-L)*46;   // clamp bars starting before the window
+      if(ee>0 && W>0){
+        bar='<div class="bar '+sc+(a.ready?'':' not-ready')+(a._overdue?' overdue':'')+(a._es<0?' clipped':'')+'" data-id="'+a.id+'" style="left:'+(L*46)+'px;width:'+Math.max(6,W)+'px">'+
+          '<span class="blabel">'+a.id+' · '+a.days+'d @ '+allocationOf(a)+'%</span></div>';
+      }
+    }
     return '<div class="row arow'+(off?' off':'')+'" data-id="'+a.id+'">'+
       '<div class="label">'+
         '<span class="id">'+a.id+'</span>'+
@@ -561,6 +572,7 @@
       var start=parseDate(a.startDate), end=parseDate(a.endDate); if(!start||!end)return;
       for(var d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
         if(d.getDay()===0||d.getDay()===6)continue;
+        if(d<TODAY)continue;                 // capacity is about today onward, not past overlaps
         var key=isoDate(d), day=byDay[key]||(byDay[key]={total:0,ids:[]});
         day.total+=allocationOf(a); day.ids.push(a.id);
       }
@@ -581,21 +593,19 @@
     document.getElementById("capV").innerHTML=WINDOW+' <small>weeks</small>';
     document.getElementById("capTier").textContent=active.length;
     document.getElementById("capMaint").textContent=counts.completed||0;
-    var current=active.filter(function(a){return a.status==="in progress";}), currentAllocation=current.reduce(function(sum,a){return sum+allocationOf(a);},0);
+    var current=active.filter(function(a){return a.status==="in progress";});
+    var activeNow=current.filter(function(a){ var s=parseDate(a.startDate),e=parseDate(a.endDate); return s&&s<=TODAY&&(!e||e>=TODAY); });
+    var currentAllocation=activeNow.reduce(function(sum,a){return sum+allocationOf(a);},0);
     var inProgressCap=document.getElementById("capFree");
-    inProgressCap.innerHTML=current.length+' <small>/ '+currentAllocation+'%</small>'; inProgressCap.className="v"+(currentAllocation>100?" bad":"");
+    inProgressCap.innerHTML=current.length+' <small>/ '+currentAllocation+'% now</small>'; inProgressCap.className="v"+(currentAllocation>100?" bad":"");
     document.getElementById("capPeak").textContent=counts.scheduled||0;
     var overdue=current.filter(function(a){return a._overdue;}), warnings=[], capacity=deliveryCapacityPeak(active);
-    var scheduleIssues=active.map(function(a){return {id:a.id,message:dateValidation(a,a.status)};}).filter(function(x){return x.message;});
     if(capacity.total>100){
       var first=parseDate(capacity.dates[0]), last=parseDate(capacity.dates[capacity.dates.length-1]);
       var period=fmtCalendarDate(first)+(capacity.dates.length>1?" to "+fmtCalendarDate(last):"");
-      warnings.push("Allocation warning: scheduled and in-progress work reaches "+capacity.total+"% from "+period+" ("+capacity.ids.join(", ")+").");
-    }else if(currentAllocation>100){
-      warnings.push("Allocation warning: in-progress tasks total "+currentAllocation+"% ("+(currentAllocation-100)+"% over available capacity).");
+      warnings.push("Allocation warning: active work reaches "+capacity.total+"% from "+period+" ("+capacity.ids.join(", ")+").");
     }
-    if(scheduleIssues.length)warnings.push("Schedule warning: "+scheduleIssues.map(function(x){return x.id+" "+x.message;}).join("  "));
-    if(overdue.length)warnings.push("Overdue: "+overdue.map(function(a){return a.id;}).join(", ")+" passed the calculated end date.");
+    if(overdue.length)warnings.push("Overdue: "+overdue.map(function(a){return a.id;}).join(", ")+" — target date has passed.");
     var warning=document.getElementById("allocationWarning");
     warning.className="allocation-warning"+(warnings.length?" show":""); warning.textContent=warnings.join("  ");
     var done=counts.completed||0, prog=counts["in progress"]||0, sched=counts.scheduled||0, denom=Math.max(1,active.length);
